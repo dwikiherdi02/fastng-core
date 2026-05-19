@@ -1,0 +1,165 @@
+﻿# Mengganti Database Driver
+
+FastNG mendukung 4 database: **SQLite** (default), **MySQL**, **PostgreSQL**, dan **MongoDB**. Penggantian dilakukan via environment variable `DB_DRIVER`.
+
+---
+
+## Driver yang Tersedia
+
+| `DB_DRIVER` | Database | ORM/Driver |
+|---|---|---|
+| `sqlite` | SQLite (file lokal) | Prisma |
+| `mysql` | MySQL / MariaDB | Prisma |
+| `postgresql` | PostgreSQL | Prisma |
+| `mongodb` | MongoDB | Mongoose |
+
+---
+
+## SQLite (default)
+
+SQLite sudah dikonfigurasi secara default. Tidak perlu setup tambahan — database tersimpan sebagai file `dev.db`.
+
+**`.env`:**
+```
+DB_DRIVER=sqlite
+DATABASE_URL=file:./dev.db
+```
+
+**Jalankan:**
+```bash
+yarn db:push
+yarn dev
+```
+
+Log konfirmasi: `[DB] Connected to SQLite`
+
+---
+
+## MySQL
+
+### Langkah 1 — Copy schema MySQL
+
+```powershell
+Copy-Item prisma\schema.mysql.prisma prisma\schema.prisma -Force
+```
+
+### Langkah 2 — Update `.env`
+
+```
+DB_DRIVER=mysql
+DATABASE_URL=mysql://user:password@localhost:3306/FastNG_db
+```
+
+Ganti `user`, `password`, dan `FastNG_db` sesuai konfigurasi MySQL kamu.
+
+### Langkah 3 — Generate Prisma Client dan push schema
+
+```bash
+yarn db:generate
+yarn db:push
+```
+
+### Langkah 4 — Jalankan server
+
+```bash
+yarn dev
+```
+
+Log konfirmasi: `[DB] Connected to MySQL`
+
+---
+
+## PostgreSQL
+
+### Langkah 1 — Copy schema PostgreSQL
+
+```powershell
+Copy-Item prisma\schema.postgresql.prisma prisma\schema.prisma -Force
+```
+
+### Langkah 2 — Update `.env`
+
+```
+DB_DRIVER=postgresql
+DATABASE_URL=postgresql://user:password@localhost:5432/FastNG_db
+```
+
+### Langkah 3 — Generate dan push
+
+```bash
+yarn db:generate
+yarn db:push
+```
+
+Log konfirmasi: `[DB] Connected to PostgreSQL`
+
+---
+
+## MongoDB
+
+### Langkah 1 — Update `.env`
+
+```
+DB_DRIVER=mongodb
+MONGODB_URI=mongodb://localhost:27017/FastNG_db
+```
+
+Untuk MongoDB Atlas:
+```
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/FastNG_db
+```
+
+### Langkah 2 — Jalankan server
+
+```bash
+yarn dev
+```
+
+Tidak perlu `yarn db:push` — Mongoose membuat collection otomatis saat data pertama dimasukkan.
+
+Log konfirmasi: `[DB] Connected to MongoDB`
+
+> **Penting:** Saat menggunakan MongoDB, `fastify.db` bernilai `null`. Koneksi database diakses via model Mongoose (`UserModel`, `RefreshTokenModel`) di dalam repository.
+
+---
+
+## Cara Kerja Factory Pattern di Repository
+
+Setiap modul memiliki dua repository yang dipilih otomatis berdasarkan `DB_DRIVER`:
+
+```js
+// src/modules/users/repositories/user.repository.js
+import { UserPrismaRepository } from './user.prisma.repository.js'
+import { UserMongoRepository } from './user.mongo.repository.js'
+
+export function createUserRepository(fastify) {
+  if (fastify.config.DB_DRIVER === 'mongodb') {
+    return new UserMongoRepository()
+  }
+  return new UserPrismaRepository(fastify.db)
+}
+```
+
+Factory ini dipanggil di `module.js` saat modul di-register. Kamu tidak perlu mengubah apapun di service atau controller saat ganti driver.
+
+---
+
+## `db:push` vs `db:migrate`
+
+| Perintah | Kapan digunakan |
+|---|---|
+| `yarn db:push` | Development — langsung apply tanpa history migrasi |
+| `yarn db:migrate` | Production — buat file migrasi SQL, ada history rollback |
+| `yarn db:studio` | Buka GUI database browser di browser |
+
+Untuk development awal, selalu gunakan `db:push`. Untuk production, gunakan `db:migrate` agar ada trail perubahan schema.
+
+---
+
+## Perhatian saat Ganti Driver
+
+- **Data tidak ikut pindah** — ganti driver berarti mulai dengan database kosong
+- Pastikan service database (MySQL/PostgreSQL/MongoDB) sudah running sebelum `yarn dev`
+- `DATABASE_URL` wajib diisi untuk semua Prisma driver (sqlite, mysql, postgresql)
+- `MONGODB_URI` wajib untuk MongoDB
+- Setelah ganti schema Prisma, selalu jalankan `yarn db:generate` sebelum `yarn dev`
