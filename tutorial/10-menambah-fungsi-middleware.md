@@ -32,12 +32,16 @@ Response keluar
 
 ## Bagian 1: Mengedit Error Handler
 
-File error handler ada di `src/core/middlewares/error-handler.js`. Ini adalah satu-satunya error handler global.
+File error handler ada di `src/core/middlewares/error-handler.ts`. Ini adalah satu-satunya error handler global.
 
 ### Cara kerja saat ini
 
-```js
-export default function errorHandler(error, request, reply) {
+```ts
+import type { FastifyRequest, FastifyReply } from 'fastify'
+import { AppError } from '../utils/errors.js'
+import { errorResponse } from '../utils/response.js'
+
+export default function errorHandler(error: Error & { code?: string; statusCode?: number; validation?: any }, request: FastifyRequest, reply: FastifyReply): void {
   // 1. JWT errors (dari @fastify/jwt)
   if (error.code === 'FST_JWT_NO_AUTHORIZATION_IN_HEADER' || error.statusCode === 401) {
     return reply.code(401).send(errorResponse('Unauthorized'))
@@ -68,12 +72,13 @@ export default function errorHandler(error, request, reply) {
 
 Contoh: menangani error dari library `multer` (file upload):
 
-```js
-// src/core/middlewares/error-handler.js
+```ts
+// src/core/middlewares/error-handler.ts
 import { AppError } from '../utils/errors.js'
 import { errorResponse } from '../utils/response.js'
+import type { FastifyRequest, FastifyReply } from 'fastify'
 
-export default function errorHandler(error, request, reply) {
+export default function errorHandler(error: any, request: FastifyRequest, reply: FastifyReply): void {
   // Tambah SEBELUM blok AppError
   if (error.code === 'LIMIT_FILE_SIZE') {
     return reply.code(413).send(errorResponse('File terlalu besar, maksimal 5MB'))
@@ -89,13 +94,17 @@ export default function errorHandler(error, request, reply) {
 
 ### Menambah logging detail untuk debugging
 
-```js
-export default function errorHandler(error, request, reply) {
+```ts
+import { AppError } from '../utils/errors.js'
+import { errorResponse } from '../utils/response.js'
+import type { FastifyRequest, FastifyReply } from 'fastify'
+
+export default function errorHandler(error: any, request: FastifyRequest, reply: FastifyReply): void {
   // Tambah info request ke log untuk semua error
   const context = {
     method: request.method,
     url: request.url,
-    userId: request.user?.sub ?? 'anonymous',
+    userId: request.user?.id ?? 'anonymous',
   }
 
   if (error instanceof AppError) {
@@ -118,10 +127,10 @@ Global hook didaftarkan di `src/app.js`, berlaku untuk **semua** route.
 
 Contoh: mencatat semua request masuk ke audit log:
 
-```js
-// src/app.js — tambahkan setelah fastify.setErrorHandler(errorHandler)
+```ts
+// src/app.ts — tambahkan setelah fastify.setErrorHandler(errorHandler)
 
-fastify.addHook('onRequest', async (request, reply) => {
+fastify.addHook('onRequest', async (request: FastifyRequest) => {
   request.log.info({
     method: request.method,
     url: request.url,
@@ -134,17 +143,17 @@ fastify.addHook('onRequest', async (request, reply) => {
 
 Contoh: menambahkan header `X-Response-Time` ke setiap response:
 
-```js
-// src/app.js
-fastify.addHook('onSend', async (request, reply, payload) => {
-  const elapsed = Date.now() - request.startTime
+```ts
+// src/app.ts
+fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply, payload: unknown) => {
+  const elapsed = Date.now() - (request as any).startTime
   reply.header('X-Response-Time', `${elapsed}ms`)
   return payload  // wajib return payload
 })
 
 // Simpan waktu mulai di onRequest
-fastify.addHook('onRequest', async (request) => {
-  request.startTime = Date.now()
+fastify.addHook('onRequest', async (request: FastifyRequest) => {
+  ;(request as any).startTime = Date.now()
 })
 ```
 
@@ -152,8 +161,8 @@ fastify.addHook('onRequest', async (request) => {
 
 Cocok untuk analytics, karena tidak bisa lagi modifikasi response:
 
-```js
-fastify.addHook('onResponse', async (request, reply) => {
+```ts
+fastify.addHook('onResponse', async (request: FastifyRequest, reply: FastifyReply) => {
   request.log.info({
     method: request.method,
     url: request.url,
@@ -171,9 +180,11 @@ Hook dapat didaftarkan di dalam `module.js` — berlaku hanya untuk route modul 
 
 Contoh: mencatat semua akses ke modul `posts`:
 
-```js
-// src/modules/posts/module.js
-export default async function postsModule(fastify) {
+```ts
+// src/modules/posts/module.ts
+import type { FastifyInstance } from 'fastify'
+
+export default async function postsModule(fastify: FastifyInstance): Promise<void> {
   const repository = createPostRepository(fastify.db)
   const service = new PostService(repository)
   const controller = new PostController(service)
@@ -181,7 +192,7 @@ export default async function postsModule(fastify) {
   fastify.register(
     async (instance) => {
       // Hook hanya berlaku dalam scope instance ini
-      instance.addHook('onRequest', async (request, reply) => {
+      instance.addHook('onRequest', async (request) => {
         request.log.info({ url: request.url }, 'Posts module accessed')
       })
 
@@ -198,25 +209,26 @@ export default async function postsModule(fastify) {
 
 Untuk hook yang kompleks, buat file terpisah di `src/core/middlewares/`:
 
-`src/core/middlewares/request-id.js`
+`src/core/middlewares/request-id.ts`
 
-```js
+```ts
 import { randomUUID } from 'crypto'
+import type { FastifyRequest, FastifyReply } from 'fastify'
 
 /**
  * Tambahkan X-Request-ID ke setiap request dan response.
- * Daftarkan di app.js dengan: fastify.addHook('onRequest', requestIdMiddleware)
+ * Daftarkan di app.ts dengan: fastify.addHook('onRequest', requestIdMiddleware)
  */
-export async function requestIdMiddleware(request, reply) {
-  const id = request.headers['x-request-id'] ?? randomUUID()
-  request.requestId = id
+export async function requestIdMiddleware(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const id = (request.headers['x-request-id'] as string) ?? randomUUID()
+  ;(request as any).requestId = id
   reply.header('X-Request-Id', id)
 }
 ```
 
-Daftarkan di `src/app.js`:
+Daftarkan di `src/app.ts`:
 
-```js
+```ts
 import { requestIdMiddleware } from './core/middlewares/request-id.js'
 
 // Di dalam buildApp():

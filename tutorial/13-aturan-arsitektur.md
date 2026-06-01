@@ -9,31 +9,31 @@ Referensi aturan per lapisan untuk menjaga konsistensi dan keberlanjutan codebas
 ```
 ┌─────────────────────────────────────────────────┐
 │                   HTTP Layer                    │
-│  Route Handler (routes/*.routes.js)             │
+│  Route Handler (routes/*.routes.ts)             │
 │  → Definisi endpoint, schema Swagger, preHandler│
 └──────────────────┬──────────────────────────────┘
                    │ memanggil
 ┌──────────────────▼──────────────────────────────┐
 │              Controller Layer                   │
-│  (controllers/*.controller.js)                  │
+│  (controllers/*.controller.ts)                  │
 │  → Parse & validasi input, format output        │
 └──────────────────┬──────────────────────────────┘
                    │ memanggil
 ┌──────────────────▼──────────────────────────────┐
 │               Service Layer                     │
-│  (services/*.service.js)                        │
+│  (services/*.service.ts)                        │
 │  → Business logic, orchestrasi, throw errors    │
 └──────────────────┬──────────────────────────────┘
                    │ memanggil
 ┌──────────────────▼──────────────────────────────┐
 │             Repository Layer                    │
-│  (repositories/*.repository.js)                 │
+│  (repositories/*.repository.ts)                 │
 │  → Akses database, query, return Entity         │
 └──────────────────┬──────────────────────────────┘
                    │ menggunakan
 ┌──────────────────▼──────────────────────────────┐
 │               Entity Layer                      │
-│  (entities/*.entity.js)                         │
+│  (entities/*.entity.ts)                         │
 │  → Pure domain object, tidak tergantung ORM     │
 └─────────────────────────────────────────────────┘
 ```
@@ -50,16 +50,22 @@ Referensi aturan per lapisan untuk menjaga konsistensi dan keberlanjutan codebas
 | Method domain logic (`isAdmin()`, `isPublished()`) | Akses database langsung |
 | Constructor sederhana | Throw HTTP error |
 
-```js
+```ts
 // ✅ BENAR
 export class PostEntity {
-  constructor({ id, title, content, authorId, published }) {
+  id: string
+  title: string
+  published: boolean
+
+  constructor({ id, title, content, authorId, published }: {
+    id: string; title: string; content: string; authorId: string; published: boolean
+  }) {
     this.id = id
     this.title = title
     this.published = published
   }
 
-  isPublished() { return this.published === true }
+  isPublished(): boolean { return this.published === true }
 }
 
 // ❌ SALAH — entity tidak boleh import ORM
@@ -80,15 +86,15 @@ export class PostEntity {
 | Map raw record → Entity | Throw `NotFoundError` (cukup return null) |
 | Menerima prisma via constructor | Akses langsung ke `fastify.*` |
 
-```js
+```ts
 // ✅ BENAR — repository hanya query, return entity atau null
-async findById(id) {
+async findById(id: string): Promise<PostEntity | null> {
   const record = await this.prisma.post.findUnique({ where: { id } })
   return record ? toEntity(record) : null  // return null, bukan throw error
 }
 
 // ❌ SALAH — business logic tidak boleh ada di repository
-async findById(id) {
+async findById(id: string): Promise<PostEntity> {
   const record = await this.prisma.post.findUnique({ where: { id } })
   if (!record) throw new NotFoundError('Post not found')  // ini tugas service
   if (record.authorId !== currentUserId) throw new ForbiddenError(...)  // ini tugas service
@@ -107,16 +113,16 @@ async findById(id) {
 | Orkestrasi beberapa repository | Format HTTP response |
 | Validasi aturan bisnis | Return `null` untuk "tidak ditemukan" |
 
-```js
+```ts
 // ✅ BENAR — service throw typed error, tidak return null
-async getPost(id) {
+async getPost(id: string): Promise<PostEntity> {
   const entity = await this.repository.findById(id)
   if (!entity) throw new NotFoundError('Post not found')
   return entity
 }
 
 // ✅ BENAR — service boleh orchestrasi
-async transferPoints(fromId, toId, amount) {
+async transferPoints(fromId: string, toId: string, amount: number): Promise<{ success: boolean }> {
   const sender = await this.userRepository.findById(fromId)
   if (!sender) throw new NotFoundError('Sender not found')
   if (sender.points < amount) throw new BadRequestError('Insufficient points')
@@ -127,7 +133,7 @@ async transferPoints(fromId, toId, amount) {
 }
 
 // ❌ SALAH — service tidak boleh akses request/reply
-async getPost(request, reply) {  // parameter Fastify di service = SALAH
+async getPost(request: any, reply: any) {  // parameter Fastify di service = SALAH
   const id = request.params.id
   // ...
 }
@@ -144,21 +150,21 @@ async getPost(request, reply) {  // parameter Fastify di service = SALAH
 | Format response (`successResponse`, `toXxxResponse`) | Throw error selain `ValidationError` |
 | Parse query params | Logika kondisional domain |
 
-```js
+```ts
 // ✅ BENAR — controller validasi input, panggil service, format output
-async createPost(request, reply) {
+async createPost(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const parsed = createPostRequestSchema.safeParse(request.body)
   if (!parsed.success) {
     throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
   }
-  const entity = await this.service.createPost(request.user.sub, parsed.data)
+  const entity = await this.service.createPost(request.user.id, parsed.data)
   return reply.code(201).send(successResponse(toPostResponse(entity)))
 }
 
 // ❌ SALAH — business logic di controller
-async createPost(request, reply) {
+async createPost(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   // Cek duplikat di controller = SALAH, ini tugas service/repository
-  const existing = await this.prisma.post.findFirst({ where: { title: request.body.title } })
+  const existing = await this.prisma.post.findFirst({ where: { title: (request.body as any).title } })
   if (existing) throw new ConflictError('Title already exists')
 }
 ```
@@ -174,7 +180,7 @@ async createPost(request, reply) {
 | `preHandler: [fastify.authenticate]` | Panggil service langsung |
 | Mapping route → controller method | Logika kondisional |
 
-```js
+```ts
 // ✅ BENAR — route hanya definisi endpoint
 fastify.post('/', { ...auth, schema: createPostRouteSchema }, (req, rep) =>
   controller.createPost(req, rep)
@@ -182,7 +188,7 @@ fastify.post('/', { ...auth, schema: createPostRouteSchema }, (req, rep) =>
 
 // ❌ SALAH — logika di route handler
 fastify.post('/', async (req, rep) => {
-  const user = await db.user.findUnique({ where: { id: req.user.sub } })
+  const user = await db.user.findUnique({ where: { id: req.user.id } })
   if (!user) return rep.code(404).send(...)
   // ini seharusnya di service/controller
 })
@@ -194,7 +200,7 @@ fastify.post('/', async (req, rep) => {
 
 ### Hanya boleh import via `index.js`
 
-```js
+```ts
 // ✅ BENAR — import dari public API modul
 import { UserService } from '../users/index.js'
 import { createUserRepository } from '../users/index.js'
@@ -206,7 +212,7 @@ import { UserPrismaRepository } from '../users/repositories/user.prisma.reposito
 
 ### Import diizinkan dari `core/`
 
-```js
+```ts
 // ✅ Modul boleh import dari core
 import { NotFoundError } from '../../../core/utils/errors.js'
 import { successResponse } from '../../../core/utils/response.js'
@@ -215,9 +221,9 @@ import env from '../../../core/config/env.config.js'
 
 ### Core tidak boleh import dari modul
 
-```js
+```ts
 // ❌ SALAH — core tidak boleh bergantung pada modul tertentu
-// src/core/plugins/db.plugin.js
+// src/core/plugins/db.plugin.ts
 import { UserService } from '../../modules/users/index.js'  // DILARANG
 ```
 
@@ -227,14 +233,14 @@ import { UserService } from '../../modules/users/index.js'  // DILARANG
 
 ### 1. Tidak ada `null` untuk "tidak ditemukan"
 
-```js
+```ts
 // ❌ Service return null
-async getUser(id) {
+async getUser(id: string) {
   return this.repository.findById(id)  // bisa null — controller tidak tahu
 }
 
 // ✅ Service throw typed error
-async getUser(id) {
+async getUser(id: string): Promise<UserEntity> {
   const user = await this.repository.findById(id)
   if (!user) throw new NotFoundError('User not found')
   return user
@@ -245,8 +251,8 @@ async getUser(id) {
 
 Setiap modul **wajib** punya `index.js` yang mengekspor semua yang boleh diakses modul lain:
 
-```js
-// src/modules/users/index.js
+```ts
+// src/modules/users/index.ts
 export { UserService } from './services/user.service.js'
 export { createUserRepository } from './repositories/user.repository.js'
 // Jangan export entity internal, repository konkret, dll.
@@ -254,29 +260,31 @@ export { createUserRepository } from './repositories/user.repository.js'
 
 ### 3. Tidak ada direct DB access di luar repository
 
-```js
+```ts
 // ❌ Service akses Prisma langsung
 export class PostService {
-  constructor(prisma) {
+  private prisma: PrismaClient
+
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma  // SALAH — service tidak boleh pegang prisma
   }
 
-  async getPost(id) {
+  async getPost(id: string) {
     return this.prisma.post.findUnique({ where: { id } })
   }
 }
 
 // ✅ Service via repository
 export class PostService {
-  constructor(repository) {
-    this.repository = repository  // repository sudah meng-abstract DB
+  constructor(private repository: PostPrismaRepository | PostMongoRepository) {
+    // repository sudah meng-abstract DB
   }
 }
 ```
 
 ### 4. Error hanya typed AppError
 
-```js
+```ts
 // ❌ Throw Error biasa
 throw new Error('Not found')  // tidak ada HTTP status code
 
@@ -297,15 +305,15 @@ POST /api/v1/posts
     ▼ routes/post.routes.js
     fastify.post('/', { ...auth, schema }, handler)
     │
-    ▼ controllers/post.controller.js
+    ▼ controllers/post.controller.ts
     - Zod safeParse(request.body)
     - throw ValidationError jika gagal
     │
-    ▼ services/post.service.js
+    ▼ services/post.service.ts
     - createPost(authorId, data)
     - validasi business rule
     │
-    ▼ repositories/post.prisma.repository.js
+    ▼ repositories/post.prisma.repository.ts
     - prisma.post.create({ data })
     - return PostEntity
     │

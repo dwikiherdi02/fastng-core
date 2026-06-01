@@ -10,10 +10,11 @@ Plugin adalah cara utama Fastify untuk mengenkapsulasi fungsionalitas dan berbag
 
 **Pola dasar:**
 
-```js
+```ts
 import fp from 'fastify-plugin'
+import type { FastifyInstance } from 'fastify'
 
-async function myPlugin(fastify, opts) {
+async function myPlugin(fastify: FastifyInstance, opts: Record<string, unknown>): Promise<void> {
   // Tambah decorator, hook, atau register plugin npm
   fastify.decorate('myFeature', someValue)
 }
@@ -29,12 +30,12 @@ Tanpa `fp()`, plugin akan ter-encapsulate dan decorator-nya tidak terlihat di lu
 
 | File | Fungsi |
 |------|--------|
-| `cors.plugin.js` | CORS headers via `@fastify/cors` |
-| `helmet.plugin.js` | Security headers via `@fastify/helmet` |
-| `rate-limit.plugin.js` | Rate limiting via `@fastify/rate-limit` |
-| `swagger.plugin.js` | API docs via `@fastify/swagger` + `@fastify/swagger-ui` |
-| `db.plugin.js` | Database connection, mendaftarkan `fastify.db` |
-| `jwt.plugin.js` | JWT + `fastify.authenticate` decorator |
+| `cors.plugin.ts` | CORS headers via `@fastify/cors` |
+| `helmet.plugin.ts` | Security headers via `@fastify/helmet` |
+| `rate-limit.plugin.ts` | Rate limiting via `@fastify/rate-limit` |
+| `swagger.plugin.ts` | API docs via `@fastify/swagger` + `@fastify/swagger-ui` |
+| `db.plugin.ts` | Database connection, mendaftarkan `fastify.db` |
+| `jwt.plugin.ts` | JWT + `fastify.authenticate` decorator |
 
 ---
 
@@ -45,19 +46,20 @@ Tanpa `fp()`, plugin akan ter-encapsulate dan decorator-nya tidak terlihat di lu
 Install dependency:
 
 ```bash
-yarn add nodemailer
+npm install nodemailer
 ```
 
 Buat file plugin:
 
-`src/core/plugins/email.plugin.js`
+`src/core/plugins/email.plugin.ts`
 
-```js
+```ts
 import fp from 'fastify-plugin'
 import nodemailer from 'nodemailer'
 import env from '../config/env.config.js'
+import type { FastifyInstance } from 'fastify'
 
-async function emailPlugin(fastify) {
+async function emailPlugin(fastify: FastifyInstance): Promise<void> {
   const transporter = nodemailer.createTransporter({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
@@ -71,12 +73,8 @@ async function emailPlugin(fastify) {
   await transporter.verify()
   fastify.log.info('Email transporter connected')
 
-  /**
-   * Kirim email
-   * @param {{ to: string, subject: string, html: string }} options
-   */
-  async function sendEmail({ to, subject, html }) {
-    return transporter.sendMail({
+  async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
+    await transporter.sendMail({
       from: `"FastNG" <${env.SMTP_USER}>`,
       to,
       subject,
@@ -91,9 +89,9 @@ async function emailPlugin(fastify) {
 export default fp(emailPlugin, { name: 'email-plugin' })
 ```
 
-Daftarkan di `src/app.js`:
+Daftarkan di `src/app.ts`:
 
-```js
+```ts
 import emailPlugin from './core/plugins/email.plugin.js'
 
 // Di dalam buildApp(), setelah plugin lain:
@@ -102,21 +100,21 @@ await fastify.register(emailPlugin)
 
 Gunakan di service atau controller:
 
-```js
-// Di module.js — inject fastify ke service
-export default async function authModule(fastify) {
+```ts
+// Di module.ts — inject fastify ke service
+export default async function authModule(fastify: any): Promise<void> {
   const service = new AuthService(repository, fastify.sendEmail)
   // ...
 }
 
-// Di auth.service.js
+// Di auth.service.ts
 export class AuthService {
-  constructor(repository, sendEmail) {
-    this.repository = repository
-    this.sendEmail = sendEmail
-  }
+  constructor(
+    private repository: any,
+    private sendEmail: (opts: { to: string; subject: string; html: string }) => Promise<void>
+  ) {}
 
-  async register(data) {
+  async register(data: any): Promise<any> {
     const user = await this.repository.create(data)
     // Kirim welcome email
     await this.sendEmail({
@@ -136,17 +134,18 @@ export class AuthService {
 Install dependency:
 
 ```bash
-yarn add ioredis
+npm install ioredis
 ```
 
-`src/core/plugins/cache.plugin.js`
+`src/core/plugins/cache.plugin.ts`
 
-```js
+```ts
 import fp from 'fastify-plugin'
 import Redis from 'ioredis'
 import env from '../config/env.config.js'
+import type { FastifyInstance } from 'fastify'
 
-async function cachePlugin(fastify) {
+async function cachePlugin(fastify: FastifyInstance): Promise<void> {
   const redis = new Redis(env.REDIS_URL)
 
   redis.on('error', (err) => {
@@ -158,31 +157,16 @@ async function cachePlugin(fastify) {
   })
 
   const cache = {
-    /**
-     * Ambil nilai dari cache
-     * @param {string} key
-     * @returns {Promise<string | null>}
-     */
-    async get(key) {
+    async get(key: string): Promise<string | null> {
       return redis.get(key)
     },
 
-    /**
-     * Simpan nilai ke cache dengan TTL (detik)
-     * @param {string} key
-     * @param {string} value
-     * @param {number} ttlSeconds
-     */
-    async set(key, value, ttlSeconds = 300) {
-      return redis.setex(key, ttlSeconds, value)
+    async set(key: string, value: string, ttlSeconds = 300): Promise<void> {
+      await redis.setex(key, ttlSeconds, value)
     },
 
-    /**
-     * Hapus key dari cache
-     * @param {string} key
-     */
-    async del(key) {
-      return redis.del(key)
+    async del(key: string): Promise<void> {
+      await redis.del(key)
     },
   }
 
@@ -200,18 +184,18 @@ export default fp(cachePlugin, { name: 'cache-plugin' })
 
 Gunakan di controller atau service:
 
-```js
-// Di module.js
-export default async function postsModule(fastify) {
+```ts
+// Di module.ts
+export default async function postsModule(fastify: any): Promise<void> {
   const service = new PostService(repository, fastify.cache)
   // ...
 }
 
-// Di post.service.js
-async getPost(id) {
+// Di post.service.ts
+async getPost(id: string): Promise<PostEntity> {
   const cacheKey = `post:${id}`
   const cached = await this.cache.get(cacheKey)
-  if (cached) return JSON.parse(cached)
+  if (cached) return JSON.parse(cached) as PostEntity
 
   const entity = await this.repository.findById(id)
   if (!entity) throw new NotFoundError('Post not found')
@@ -227,18 +211,17 @@ async getPost(id) {
 
 Plugin sederhana untuk menambahkan utilitas ke fastify instance:
 
-`src/core/plugins/pagination.plugin.js`
+`src/core/plugins/pagination.plugin.ts`
 
-```js
+```ts
 import fp from 'fastify-plugin'
+import type { FastifyInstance } from 'fastify'
 
-async function paginationPlugin(fastify) {
-  /**
-   * Parse query params pagination dengan nilai default
-   * @param {{ page?: string, limit?: string }} query
-   * @param {{ maxLimit?: number }} opts
-   */
-  function parsePagination(query, { maxLimit = 100 } = {}) {
+async function paginationPlugin(fastify: FastifyInstance): Promise<void> {
+  function parsePagination(
+    query: { page?: string; limit?: string },
+    { maxLimit = 100 } = {}
+  ): { page: number; limit: number; skip: number } {
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1)
     const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit ?? '20', 10) || 20))
     return { page, limit, skip: (page - 1) * limit }
@@ -256,7 +239,7 @@ export default fp(paginationPlugin, { name: 'pagination-plugin' })
 
 Urutan di `src/app.js` penting karena beberapa plugin bergantung pada plugin lain:
 
-```js
+```ts
 // Urutan yang benar:
 await fastify.register(swaggerPlugin)   // 1. Docs (tidak bergantung apapun)
 await fastify.register(helmetPlugin)    // 2. Security headers
@@ -278,13 +261,13 @@ await fastify.register(cachePlugin)     // 8. Plugin tambahan
 |--|--------------|-------------|
 | Scope decorator | Global (tersedia di parent) | Lokal (hanya dalam plugin) |
 | Penggunaan | Core plugins yang perlu diakses semua module | Plugin enkapsulasi fitur tertentu |
-| Contoh | `jwt.plugin.js`, `db.plugin.js` | Plugin route-level |
+| Contoh | `jwt.plugin.ts`, `db.plugin.ts` | Plugin route-level |
 
 ---
 
 ## Checklist Membuat Plugin Baru
 
-1. Buat file di `src/core/plugins/nama-plugin.js`
+1. Buat file di `src/core/plugins/nama-plugin.ts`
 2. Import `fp` dari `fastify-plugin`
 3. Buat async function `(fastify, opts)` → tambahkan logic
 4. Gunakan `fastify.decorate('nama', value)` untuk expose ke app

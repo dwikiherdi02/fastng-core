@@ -14,24 +14,24 @@ File yang perlu dibuat:
 
 ```
 src/modules/posts/
-├── index.js                          ← public API modul
-├── module.js                         ← entry point Fastify
+├── index.ts                          ← public API modul
+├── module.ts                         ← entry point Fastify
 ├── entities/
-│   └── post.entity.js                ← domain object murni
+│   └── post.entity.ts                ← domain object murni
 ├── dto/
-│   ├── create-post.request.dto.js    ← validasi input (Zod + JSON Schema)
-│   ├── update-post.request.dto.js    ← validasi input PATCH
-│   └── post.response.dto.js          ← format output
+│   ├── create-post.request.dto.ts    ← validasi input (Zod + JSON Schema)
+│   ├── update-post.request.dto.ts    ← validasi input PATCH
+│   └── post.response.dto.ts          ← format output
 ├── repositories/
-│   ├── post.repository.js            ← factory (pilih driver)
-│   ├── post.prisma.repository.js     ← implementasi Prisma
-│   └── post.mongo.repository.js      ← implementasi Mongoose
+│   ├── post.repository.ts            ← factory (pilih driver)
+│   ├── post.prisma.repository.ts     ← implementasi Prisma
+│   └── post.mongo.repository.ts      ← implementasi Mongoose
 ├── services/
-│   └── post.service.js               ← business logic
+│   └── post.service.ts               ← business logic
 ├── controllers/
-│   └── post.controller.js            ← handle request/response
+│   └── post.controller.ts            ← handle request/response
 └── routes/
-    └── post.routes.js                ← definisi HTTP endpoint
+    └── post.routes.ts                ← definisi HTTP endpoint
 ```
 
 ---
@@ -66,34 +66,47 @@ model User {
 Jalankan migrasi:
 
 ```bash
-yarn db:migrate
+npm run db:migrate
 ```
 
 ---
 
 ## Langkah 2: Buat Entity
 
-`src/modules/posts/entities/post.entity.js`
+`src/modules/posts/entities/post.entity.ts`
 
-```js
+```ts
 /**
  * Pure domain object — no ORM, no framework dependency.
  */
 export class PostEntity {
-  /**
-   * @param {{id: string, title: string, content: string, authorId: string, published: boolean, createdAt: Date, updatedAt: Date}} props
-   */
-  constructor({ id, title, content, authorId, published, createdAt, updatedAt }) {
-    this.id = id
-    this.title = title
-    this.content = content
-    this.authorId = authorId
-    this.published = published
-    this.createdAt = createdAt
-    this.updatedAt = updatedAt
+  id: string
+  title: string
+  content: string
+  authorId: string
+  published: boolean
+  createdAt: Date
+  updatedAt: Date
+
+  constructor(props: {
+    id: string
+    title: string
+    content: string
+    authorId: string
+    published: boolean
+    createdAt: Date
+    updatedAt: Date
+  }) {
+    this.id = props.id
+    this.title = props.title
+    this.content = props.content
+    this.authorId = props.authorId
+    this.published = props.published
+    this.createdAt = props.createdAt
+    this.updatedAt = props.updatedAt
   }
 
-  isPublished() {
+  isPublished(): boolean {
     return this.published === true
   }
 }
@@ -107,12 +120,16 @@ export class PostEntity {
 
 ## Langkah 3: Buat Prisma Repository
 
-`src/modules/posts/repositories/post.prisma.repository.js`
+`src/modules/posts/repositories/post.prisma.repository.ts`
 
-```js
+```ts
+import type { PrismaClient } from '@prisma/client'
 import { PostEntity } from '../entities/post.entity.js'
 
-function toEntity(record) {
+function toEntity(record: {
+  id: string; title: string; content: string; authorId: string;
+  published: boolean; createdAt: Date; updatedAt: Date
+}): PostEntity {
   return new PostEntity({
     id: record.id,
     title: record.title,
@@ -125,17 +142,14 @@ function toEntity(record) {
 }
 
 export class PostPrismaRepository {
-  /** @param {import('@prisma/client').PrismaClient} prisma */
-  constructor(prisma) {
-    this.prisma = prisma
-  }
+  constructor(private prisma: PrismaClient) {}
 
-  async findById(id) {
+  async findById(id: string): Promise<PostEntity | null> {
     const record = await this.prisma.post.findUnique({ where: { id } })
     return record ? toEntity(record) : null
   }
 
-  async findAll({ page = 1, limit = 20 } = {}) {
+  async findAll({ page = 1, limit = 20 } = {}): Promise<{ items: PostEntity[]; total: number }> {
     const skip = (page - 1) * limit
     const [records, total] = await Promise.all([
       this.prisma.post.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' } }),
@@ -144,7 +158,7 @@ export class PostPrismaRepository {
     return { items: records.map(toEntity), total }
   }
 
-  async findByAuthor(authorId) {
+  async findByAuthor(authorId: string): Promise<PostEntity[]> {
     const records = await this.prisma.post.findMany({
       where: { authorId },
       orderBy: { createdAt: 'desc' },
@@ -152,18 +166,22 @@ export class PostPrismaRepository {
     return records.map(toEntity)
   }
 
-  async create(data) {
+  async create(data: { title: string; content: string; authorId: string; published?: boolean }): Promise<PostEntity> {
     const record = await this.prisma.post.create({ data })
     return toEntity(record)
   }
 
-  async update(id, data) {
+  async update(id: string, data: Partial<{ title: string; content: string; published: boolean }>): Promise<PostEntity> {
     const record = await this.prisma.post.update({ where: { id }, data })
     return toEntity(record)
   }
 
-  async delete(id) {
+  async delete(id: string): Promise<void> {
     await this.prisma.post.delete({ where: { id } })
+  }
+
+  withClient(tx: PrismaClient): PostPrismaRepository {
+    return new PostPrismaRepository(tx)
   }
 }
 ```
@@ -174,12 +192,21 @@ export class PostPrismaRepository {
 
 `src/modules/posts/repositories/post.mongo.repository.js`
 
-Buat dulu model Mongoose di `src/core/database/models/post.model.js`:
+Buat dulu model Mongoose di `src/core/database/models/post.model.ts`:
 
-```js
-import mongoose from 'mongoose'
+```ts
+import mongoose, { Document, Schema } from 'mongoose'
 
-const postSchema = new mongoose.Schema(
+export interface PostDocument extends Document {
+  title: string
+  content: string
+  authorId: string
+  published: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+const postSchema = new Schema<PostDocument>(
   {
     title: { type: String, required: true },
     content: { type: String, required: true },
@@ -189,18 +216,18 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-export const PostModel = mongoose.model('Post', postSchema)
+export const PostModel = mongoose.model<PostDocument>('Post', postSchema)
 ```
 
 Kemudian buat repository:
 
-`src/modules/posts/repositories/post.mongo.repository.js`
+`src/modules/posts/repositories/post.mongo.repository.ts`
 
-```js
+```ts
 import { PostModel } from '../../../core/database/models/post.model.js'
 import { PostEntity } from '../entities/post.entity.js'
 
-function toEntity(doc) {
+function toEntity(doc: any): PostEntity {
   return new PostEntity({
     id: doc._id.toString(),
     title: doc.title,
@@ -213,12 +240,12 @@ function toEntity(doc) {
 }
 
 export class PostMongoRepository {
-  async findById(id) {
+  async findById(id: string): Promise<PostEntity | null> {
     const doc = await PostModel.findById(id).lean()
     return doc ? toEntity(doc) : null
   }
 
-  async findAll({ page = 1, limit = 20 } = {}) {
+  async findAll({ page = 1, limit = 20 } = {}): Promise<{ items: PostEntity[]; total: number }> {
     const skip = (page - 1) * limit
     const [docs, total] = await Promise.all([
       PostModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -227,23 +254,27 @@ export class PostMongoRepository {
     return { items: docs.map(toEntity), total }
   }
 
-  async findByAuthor(authorId) {
+  async findByAuthor(authorId: string): Promise<PostEntity[]> {
     const docs = await PostModel.find({ authorId }).sort({ createdAt: -1 }).lean()
     return docs.map(toEntity)
   }
 
-  async create(data) {
+  async create(data: { title: string; content: string; authorId: string; published?: boolean }): Promise<PostEntity> {
     const doc = await PostModel.create(data)
     return toEntity(doc)
   }
 
-  async update(id, data) {
+  async update(id: string, data: Partial<{ title: string; content: string; published: boolean }>): Promise<PostEntity> {
     const doc = await PostModel.findByIdAndUpdate(id, data, { new: true }).lean()
     return toEntity(doc)
   }
 
-  async delete(id) {
+  async delete(id: string): Promise<void> {
     await PostModel.findByIdAndDelete(id)
+  }
+
+  withClient(): PostMongoRepository {
+    return this
   }
 }
 ```
@@ -252,22 +283,22 @@ export class PostMongoRepository {
 
 ## Langkah 5: Buat Factory Repository
 
-`src/modules/posts/repositories/post.repository.js`
+`src/modules/posts/repositories/post.repository.ts`
 
-```js
+```ts
+import type { PrismaClient } from '@prisma/client'
 import env from '../../../core/config/env.config.js'
 import { PostPrismaRepository } from './post.prisma.repository.js'
 import { PostMongoRepository } from './post.mongo.repository.js'
 
 /**
  * Factory — returns the correct repository for the active DB driver.
- * @param {import('@prisma/client').PrismaClient | null} prisma
  */
-export function createPostRepository(prisma) {
+export function createPostRepository(prisma: PrismaClient | null): PostPrismaRepository | PostMongoRepository {
   if (env.DB_DRIVER === 'mongodb') {
     return new PostMongoRepository()
   }
-  return new PostPrismaRepository(prisma)
+  return new PostPrismaRepository(prisma!)
 }
 ```
 
@@ -275,39 +306,37 @@ export function createPostRepository(prisma) {
 
 ## Langkah 6: Buat Service
 
-`src/modules/posts/services/post.service.js`
+`src/modules/posts/services/post.service.ts`
 
-```js
+```ts
 import { NotFoundError, ForbiddenError } from '../../../core/utils/errors.js'
+import type { PostEntity } from '../entities/post.entity.js'
 
 export class PostService {
-  /** @param {import('../repositories/post.prisma.repository.js').PostPrismaRepository} repository */
-  constructor(repository) {
-    this.repository = repository
-  }
+  constructor(private repository: any) {}
 
-  async listPosts({ page, limit } = {}) {
+  async listPosts({ page, limit }: { page?: number; limit?: number } = {}): Promise<{ items: PostEntity[]; total: number }> {
     return this.repository.findAll({ page, limit })
   }
 
-  async getPost(id) {
+  async getPost(id: string): Promise<PostEntity> {
     const entity = await this.repository.findById(id)
     if (!entity) throw new NotFoundError('Post not found')
     return entity
   }
 
-  async createPost(authorId, data) {
+  async createPost(authorId: string, data: { title: string; content: string; published?: boolean }): Promise<PostEntity> {
     return this.repository.create({ ...data, authorId })
   }
 
-  async updatePost(userId, postId, data) {
+  async updatePost(userId: string, postId: string, data: Partial<{ title: string; content: string; published: boolean }>): Promise<PostEntity> {
     const entity = await this.repository.findById(postId)
     if (!entity) throw new NotFoundError('Post not found')
     if (entity.authorId !== userId) throw new ForbiddenError('Not the author of this post')
     return this.repository.update(postId, data)
   }
 
-  async deletePost(userId, postId, role) {
+  async deletePost(userId: string, postId: string, role: string): Promise<void> {
     const entity = await this.repository.findById(postId)
     if (!entity) throw new NotFoundError('Post not found')
     // Admin dapat hapus post siapapun
@@ -325,9 +354,9 @@ export class PostService {
 
 ### Request DTO
 
-`src/modules/posts/dto/create-post.request.dto.js`
+`src/modules/posts/dto/create-post.request.dto.ts`
 
-```js
+```ts
 import { z } from 'zod'
 
 // Zod schema — untuk validasi di controller
@@ -336,6 +365,8 @@ export const createPostRequestSchema = z.object({
   content: z.string().min(10),
   published: z.boolean().optional().default(false),
 })
+
+export type CreatePostRequest = z.infer<typeof createPostRequestSchema>
 
 // JSON Schema — untuk Fastify/Swagger
 export const createPostRouteSchema = {
@@ -356,13 +387,12 @@ export const createPostRouteSchema = {
 
 ### Response DTO
 
-`src/modules/posts/dto/post.response.dto.js`
+`src/modules/posts/dto/post.response.dto.ts`
 
-```js
-/**
- * @param {import('../entities/post.entity.js').PostEntity} entity
- */
-export function toPostResponse(entity) {
+```ts
+import type { PostEntity } from '../entities/post.entity.js'
+
+export function toPostResponse(entity: PostEntity) {
   return {
     id: entity.id,
     title: entity.title,
@@ -379,52 +409,51 @@ export function toPostResponse(entity) {
 
 ## Langkah 8: Buat Controller
 
-`src/modules/posts/controllers/post.controller.js`
+`src/modules/posts/controllers/post.controller.ts`
 
-```js
+```ts
+import type { FastifyRequest, FastifyReply } from 'fastify'
 import { successResponse } from '../../../core/utils/response.js'
 import { toPostResponse } from '../dto/post.response.dto.js'
 import { createPostRequestSchema } from '../dto/create-post.request.dto.js'
 import { ValidationError } from '../../../core/utils/errors.js'
+import type { PostService } from '../services/post.service.js'
 
 export class PostController {
-  /** @param {import('../services/post.service.js').PostService} service */
-  constructor(service) {
-    this.service = service
-  }
+  constructor(private service: PostService) {}
 
-  async listPosts(request, reply) {
+  async listPosts(request: FastifyRequest<{ Querystring: { page?: string; limit?: string } }>, reply: FastifyReply): Promise<void> {
     const page = parseInt(request.query.page ?? '1')
     const limit = parseInt(request.query.limit ?? '20')
     const { items, total } = await this.service.listPosts({ page, limit })
     return reply.send(successResponse(items.map(toPostResponse), { total, page, limit }))
   }
 
-  async getPost(request, reply) {
+  async getPost(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply): Promise<void> {
     const entity = await this.service.getPost(request.params.id)
     return reply.send(successResponse(toPostResponse(entity)))
   }
 
-  async createPost(request, reply) {
+  async createPost(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const parsed = createPostRequestSchema.safeParse(request.body)
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
     }
-    const entity = await this.service.createPost(request.user.sub, parsed.data)
+    const entity = await this.service.createPost(request.user.id, parsed.data)
     return reply.code(201).send(successResponse(toPostResponse(entity)))
   }
 
-  async updatePost(request, reply) {
+  async updatePost(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply): Promise<void> {
     const entity = await this.service.updatePost(
-      request.user.sub,
+      request.user.id,
       request.params.id,
-      request.body
+      request.body as any
     )
     return reply.send(successResponse(toPostResponse(entity)))
   }
 
-  async deletePost(request, reply) {
-    await this.service.deletePost(request.user.sub, request.params.id, request.user.role)
+  async deletePost(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply): Promise<void> {
+    await this.service.deletePost(request.user.id, request.params.id, request.user.role)
     return reply.code(204).send()
   }
 }
@@ -434,9 +463,11 @@ export class PostController {
 
 ## Langkah 9: Buat Routes
 
-`src/modules/posts/routes/post.routes.js`
+`src/modules/posts/routes/post.routes.ts`
 
-```js
+```ts
+import type { FastifyInstance } from 'fastify'
+import type { PostController } from '../controllers/post.controller.js'
 import { createPostRouteSchema } from '../dto/create-post.request.dto.js'
 
 const listPostsSchema = {
@@ -461,11 +492,7 @@ const getPostSchema = {
   },
 }
 
-/**
- * @param {import('fastify').FastifyInstance} fastify
- * @param {import('../controllers/post.controller.js').PostController} controller
- */
-export default async function postRoutes(fastify, controller) {
+export default async function postRoutes(fastify: FastifyInstance, controller: PostController): Promise<void> {
   const auth = { preHandler: [fastify.authenticate] }
 
   // Public endpoints
@@ -496,9 +523,10 @@ export default async function postRoutes(fastify, controller) {
 
 ## Langkah 10: Buat Module Entry Point
 
-`src/modules/posts/module.js`
+`src/modules/posts/module.ts`
 
-```js
+```ts
+import type { FastifyInstance } from 'fastify'
 import { createPostRepository } from './repositories/post.repository.js'
 import { PostService } from './services/post.service.js'
 import { PostController } from './controllers/post.controller.js'
@@ -506,9 +534,8 @@ import postRoutes from './routes/post.routes.js'
 
 /**
  * Posts module entry point.
- * @param {import('fastify').FastifyInstance} fastify
  */
-export default async function postsModule(fastify) {
+export default async function postsModule(fastify: FastifyInstance): Promise<void> {
   const repository = createPostRepository(fastify.db)
   const service = new PostService(repository)
   const controller = new PostController(service)
@@ -524,11 +551,11 @@ export default async function postsModule(fastify) {
 
 ---
 
-## Langkah 11: Buat Public API (index.js)
+## Langkah 11: Buat Public API (index.ts)
 
-`src/modules/posts/index.js`
+`src/modules/posts/index.ts`
 
-```js
+```ts
 // Public API for the posts module.
 // Only this file may be imported by other modules.
 
@@ -540,15 +567,15 @@ export { createPostRepository } from './repositories/post.repository.js'
 
 ## Langkah 12: Daftarkan di Registry
 
-Edit `src/registry/module.registry.js`:
+Edit `src/registry/module.registry.ts`:
 
-```js
+```ts
 const moduleRegistry = [
   // ...modul yang sudah ada...
   {
     name: 'posts',
     enabled: true,
-    path: '../modules/posts/module.js',
+    path: '../modules/posts/module.js',  // NodeNext ESM: path value stays .js
     dependsOn: ['auth', 'users'],
   },
 ]

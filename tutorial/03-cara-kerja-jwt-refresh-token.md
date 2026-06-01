@@ -52,8 +52,8 @@ FastNG menggunakan sistem dua token: **access token** (berumur pendek) dan **ref
 
 ### Generate Token (Private Method)
 
-```js
-async #issueTokens(user) {
+```ts
+async #issueTokens(user: UserEntity): Promise<{ accessToken: string; refreshToken: string }> {
   // Access token — payload lengkap, tidak disimpan di DB
   const accessToken = this.fastify.jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -78,8 +78,8 @@ async #issueTokens(user) {
 
 ### Token Rotation saat Refresh
 
-```js
-async refreshTokens(oldRefreshToken) {
+```ts
+async refreshTokens(oldRefreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
   // 1. Verifikasi tanda tangan JWT (kriptografi)
   const payload = this.fastify.jwt.verify(oldRefreshToken)
 
@@ -149,8 +149,8 @@ Akses di controller setelah authenticate: `request.user.id`, `request.user.email
 
 Model `RefreshToken` Mongoose menggunakan TTL index:
 
-```js
-// src/core/database/models/refresh-token.model.js
+```ts
+// src/core/database/models/refresh-token.model.ts
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 ```
 
@@ -158,7 +158,7 @@ MongoDB otomatis menghapus dokumen saat `expiresAt` terlewati — tidak perlu cr
 
 Untuk **Prisma** (SQLite/MySQL/PostgreSQL), token expired tetap tersimpan sampai user logout. Untuk production, pertimbangkan cron job periodic cleanup:
 
-```js
+```ts
 // Contoh: hapus refresh token yang sudah expired
 await prisma.refreshToken.deleteMany({
   where: { expiresAt: { lt: new Date() } }

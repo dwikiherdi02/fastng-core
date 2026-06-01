@@ -8,7 +8,7 @@ self-contained modules, each with its own layered structure (Controller → Serv
 Repository → Entity). Modules can declare dependencies on other modules and can be
 enabled or disabled via a central registry without touching application code.
 
-This architecture is implemented for JavaScript/TypeScript services using Fastify.
+This architecture is implemented for TypeScript services using Fastify + Node.js.
 
 ---
 
@@ -37,82 +37,85 @@ FastNG/
 ├── src/
 │   ├── core/                      # Shared infrastructure — no dependency on any module
 │   │   ├── config/
-│   │   │   └── env.config.js      # Zod env schema, fail-fast on invalid vars
+│   │   │   └── env.config.ts      # Zod env schema, fail-fast on invalid vars
 │   │   ├── database/
 │   │   │   ├── drivers/
-│   │   │   │   ├── prisma.driver.js    # PrismaClient singleton
-│   │   │   │   └── mongoose.driver.js  # Mongoose connect/disconnect
-│   │   │   ├── models/                 # Mongoose schemas (MongoDB only)
-│   │   │   │   ├── user.model.js
-│   │   │   │   └── refresh-token.model.js
-│   │   │   └── index.js               # connectDb() / disconnectDb() by DB_DRIVER
+│   │   │   │   ├── prisma.driver.ts    # PrismaClient singleton
+│   │   │   │   └── mongoose.driver.ts  # Mongoose connect/disconnect
+│   │   │   ├── models/                 # Mongoose schemas + TypeScript types (MongoDB only)
+│   │   │   │   ├── user.model.ts
+│   │   │   │   └── refresh-token.model.ts
+│   │   │   └── index.ts               # connectDb() / disconnectDb() by DB_DRIVER
 │   │   ├── middlewares/
-│   │   │   └── error-handler.js       # Global error → HTTP status mapping
+│   │   │   └── error-handler.ts       # Global error → HTTP status mapping
 │   │   ├── plugins/                   # Fastify plugins (wrapped with fastify-plugin)
-│   │   │   ├── db.plugin.js           # DB connect + fastify.db decorator
-│   │   │   ├── jwt.plugin.js          # @fastify/jwt + fastify.authenticate decorator
-│   │   │   ├── cors.plugin.js
-│   │   │   ├── helmet.plugin.js
-│   │   │   ├── rate-limit.plugin.js
-│   │   │   └── swagger.plugin.js      # OpenAPI spec + Swagger UI at /docs
+│   │   │   ├── db.plugin.ts           # DB connect + fastify.db decorator
+│   │   │   ├── jwt.plugin.ts          # @fastify/jwt + fastify.authenticate decorator
+│   │   │   ├── cors.plugin.ts
+│   │   │   ├── helmet.plugin.ts
+│   │   │   ├── rate-limit.plugin.ts
+│   │   │   └── swagger.plugin.ts      # OpenAPI spec + Swagger UI at /docs
 │   │   └── utils/
-│   │       ├── errors.js              # NotFoundError, ConflictError, UnauthorizedError, dll
-│   │       └── response.js            # successResponse() / errorResponse()
+│   │       ├── errors.ts              # NotFoundError, ConflictError, UnauthorizedError, dll
+│   │       └── response.ts            # successResponse() / errorResponse()
 │   │
 │   ├── modules/                       # Feature modules — each is self-contained
 │   │   ├── auth/
-│   │   │   ├── module.js              # Entry point — registers routes
-│   │   │   ├── index.js              # Public API — only file other modules may import
+│   │   │   ├── module.ts              # Entry point — registers routes
+│   │   │   ├── index.ts              # Public API — only file other modules may import
 │   │   │   ├── entities/
-│   │   │   │   └── auth.entity.js
+│   │   │   │   └── auth.entity.ts
 │   │   │   ├── dto/
-│   │   │   │   ├── register.request.dto.js
-│   │   │   │   ├── login.request.dto.js
-│   │   │   │   └── auth.response.dto.js
+│   │   │   │   ├── register.request.dto.ts
+│   │   │   │   ├── login.request.dto.ts
+│   │   │   │   └── auth.response.dto.ts
 │   │   │   ├── repositories/
-│   │   │   │   ├── auth.prisma.repository.js
-│   │   │   │   ├── auth.mongo.repository.js
-│   │   │   │   └── auth.repository.js  # Factory: returns impl by DB_DRIVER
+│   │   │   │   ├── auth.prisma.repository.ts
+│   │   │   │   ├── auth.mongo.repository.ts
+│   │   │   │   └── auth.repository.ts  # IAuthRepository interface + factory by DB_DRIVER
 │   │   │   ├── services/
-│   │   │   │   └── auth.service.js
+│   │   │   │   └── auth.service.ts
 │   │   │   ├── controllers/
-│   │   │   │   └── auth.controller.js
+│   │   │   │   └── auth.controller.ts
 │   │   │   └── routes/
-│   │   │       └── auth.routes.js
+│   │   │       └── auth.routes.ts
 │   │   │
 │   │   ├── users/
-│   │   │   ├── module.js
-│   │   │   ├── index.js
+│   │   │   ├── module.ts
+│   │   │   ├── index.ts
 │   │   │   ├── entities/
-│   │   │   │   └── user.entity.js
+│   │   │   │   └── user.entity.ts
 │   │   │   ├── dto/
-│   │   │   │   ├── update-profile.request.dto.js
-│   │   │   │   └── user.response.dto.js
+│   │   │   │   ├── update-profile.request.dto.ts
+│   │   │   │   └── user.response.dto.ts
 │   │   │   ├── repositories/
-│   │   │   │   ├── user.prisma.repository.js
-│   │   │   │   ├── user.mongo.repository.js
-│   │   │   │   └── user.repository.js  # Factory
+│   │   │   │   ├── user.prisma.repository.ts
+│   │   │   │   ├── user.mongo.repository.ts
+│   │   │   │   └── user.repository.ts  # IUserRepository interface + factory
 │   │   │   ├── services/
-│   │   │   │   └── user.service.js
+│   │   │   │   └── user.service.ts
 │   │   │   ├── controllers/
-│   │   │   │   └── user.controller.js
+│   │   │   │   └── user.controller.ts
 │   │   │   └── routes/
-│   │   │       └── user.routes.js
+│   │   │       └── user.routes.ts
 │   │   │
 │   │   └── welcome/
-│   │       ├── module.js
-│   │       ├── index.js
+│   │       ├── module.ts
+│   │       ├── index.ts
 │   │       ├── controllers/
-│   │       │   └── welcome.controller.js
+│   │       │   └── welcome.controller.ts
 │   │       └── routes/
-│   │           └── welcome.routes.js
+│   │           └── welcome.routes.ts
 │   │
 │   ├── registry/
-│   │   ├── module.registry.js         # Declares all modules: name, enabled, dependsOn[]
-│   │   └── module.loader.js           # Dep validation + topological sort + register
+│   │   ├── module.registry.ts         # Declares all modules: name, enabled, dependsOn[]
+│   │   └── module.loader.ts           # Dep validation + topological sort + register
 │   │
-│   ├── app.js                         # Builds Fastify instance (plugins + modules)
-│   └── server.js                      # Entry point — starts HTTP server
+│   ├── types/
+│   │   └── fastify.d.ts               # Module augmentation: FastifyInstance + FastifyJWT types
+│   │
+│   ├── app.ts                         # Builds Fastify instance (plugins + modules)
+│   └── server.ts                      # Entry point — starts HTTP server
 │
 ├── .env                               # Local environment variables (git-ignored)
 ├── .env.example                       # Template env vars
@@ -255,14 +258,17 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 
 ---
 
-## Implementation Reference (JavaScript / Node.js)
+## Implementation Reference (TypeScript / Node.js)
 
 > This section defines the implementation stack for this project.
 
 ### Language & Runtime
 
-- **Language**: JavaScript (ESModule)
+- **Language**: TypeScript 5 (strict mode, NodeNext ESM)
 - **Runtime**: [Node.js](https://nodejs.org) >= 20
+- **Dev execution**: `tsx` with `--import tsx/esm` — no build step needed during development
+- **Production**: compiled to `dist/` via `tsc`, then run with `node`
+- **Import paths**: use `.js` extension even for `.ts` source files (NodeNext ESM convention — tsx resolves `.js` → `.ts` transparently at dev time)
 
 ### Framework
 
@@ -285,7 +291,7 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 | [@fastify/cors](https://github.com/fastify/fastify-cors) | CORS headers |
 | [@fastify/rate-limit](https://github.com/fastify/fastify-rate-limit) | Rate limiting |
 | [@fastify/helmet](https://github.com/fastify/fastify-helmet) | HTTP security headers |
-| [bcrypt](https://github.com/kelektiv/node.bcrypt.js) | Password hashing |
+| [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | Password hashing (pure JS, no native deps) |
 
 #### Validation
 | Package | Purpose |
@@ -316,7 +322,9 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 | Package | Purpose |
 |---|---|
 | [dotenv](https://github.com/motdotla/dotenv) | Load `.env` file |
-| [tsx](https://github.com/privatenumber/tsx) | Run TypeScript / ESM without build step |
+| [typescript](https://www.typescriptlang.org) | TypeScript compiler (`tsc`) |
+| [tsx](https://github.com/privatenumber/tsx) | Zero-build TypeScript dev execution |
+| [typescript-eslint](https://typescript-eslint.io) | TypeScript-aware ESLint rules |
 | [eslint](https://eslint.org) | Linting |
 | [prettier](https://prettier.io) | Code formatting |
 
@@ -336,7 +344,9 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 - **Always** throw a typed error from service — never return `null` for not-found cases
 - **Always** add a new feature inside its own module folder following the existing layer structure
 - **Always** export new public APIs via the module's `index` file
-- **Always** declare a new module in `registry/module.registry` before using it
+- **Always** declare a new module in `registry/module.registry.ts` before using it
+- **Import paths** in TypeScript source always use `.js` extension (NodeNext ESM — tsx resolves them to `.ts` at dev time)
+- **Types**: export repository interfaces (`IAuthRepository`, `IUserRepository`) from `repositories/X.repository.ts` and re-export via `index.ts` as `export type { ... }`
 - When adding a module that depends on another, add it to `dependsOn[]` in the registry
 - DTO files: `{action}.request.dto` for input, `{name}.response.dto` for output
 - Entity files contain domain logic only — treat them as pure functions / value objects

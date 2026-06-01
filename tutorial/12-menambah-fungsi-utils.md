@@ -33,7 +33,7 @@ Error types digunakan untuk komunikasi antar lapisan tanpa membocorkan detail HT
 
 Tambahkan class di akhir `src/core/utils/errors.js`:
 
-```js
+```ts
 export class QuotaExceededError extends AppError {
   constructor(message = 'Quota exceeded') {
     super(message, 429)
@@ -57,13 +57,11 @@ export class GoneError extends AppError {
 
 Untuk error yang perlu membawa data ekstra (misalnya daftar field yang gagal validasi):
 
-```js
+```ts
 export class UnprocessableError extends AppError {
-  /**
-   * @param {string} message
-   * @param {{ field: string, message: string }[]} errors
-   */
-  constructor(message = 'Unprocessable entity', errors = []) {
+  errors: { field: string; message: string }[]
+
+  constructor(message = 'Unprocessable entity', errors: { field: string; message: string }[] = []) {
     super(message, 422)
     this.errors = errors
   }
@@ -72,11 +70,13 @@ export class UnprocessableError extends AppError {
 
 Update `error-handler.js` untuk menangani field errors:
 
-```js
-// src/core/middlewares/error-handler.js
+```ts
+// src/core/middlewares/error-handler.ts
 import { AppError, UnprocessableError } from '../utils/errors.js'
+import { errorResponse } from '../utils/response.js'
+import type { FastifyRequest, FastifyReply } from 'fastify'
 
-export default function errorHandler(error, request, reply) {
+export default function errorHandler(error: any, request: FastifyRequest, reply: FastifyReply): void {
   // Tambahkan sebelum blok AppError umum
   if (error instanceof UnprocessableError) {
     return reply.code(422).send({
@@ -95,11 +95,11 @@ export default function errorHandler(error, request, reply) {
 
 Gunakan di service:
 
-```js
+```ts
 import { UnprocessableError } from '../../../core/utils/errors.js'
 
-async createPost(authorId, data) {
-  const errors = []
+async createPost(authorId: string, data: { title: string; content: string }): Promise<PostEntity> {
+  const errors: { field: string; message: string }[] = []
   if (data.title.length < 3) errors.push({ field: 'title', message: 'Minimal 3 karakter' })
   if (data.content.length < 10) errors.push({ field: 'content', message: 'Minimal 10 karakter' })
   if (errors.length > 0) throw new UnprocessableError('Validasi gagal', errors)
@@ -129,12 +129,8 @@ async createPost(authorId, data) {
 
 Tambahkan ke `src/core/utils/response.js`:
 
-```js
-/**
- * Helper untuk membuat meta pagination yang konsisten.
- * @param {{ total: number, page: number, limit: number }} params
- */
-export function paginationMeta({ total, page, limit }) {
+```ts
+export function paginationMeta({ total, page, limit }: { total: number; page: number; limit: number }) {
   return {
     total,
     page,
@@ -148,10 +144,11 @@ export function paginationMeta({ total, page, limit }) {
 
 Gunakan di controller:
 
-```js
+```ts
 import { successResponse, paginationMeta } from '../../../core/utils/response.js'
+import type { FastifyRequest, FastifyReply } from 'fastify'
 
-async listPosts(request, reply) {
+async listPosts(request: FastifyRequest<{ Querystring: { page?: string; limit?: string } }>, reply: FastifyReply): Promise<void> {
   const page = parseInt(request.query.page ?? '1')
   const limit = parseInt(request.query.limit ?? '20')
   const { items, total } = await this.service.listPosts({ page, limit })
@@ -185,16 +182,14 @@ Output response:
 
 Untuk utilitas yang tidak berkaitan dengan error atau response, buat file terpisah.
 
-### Contoh: `src/core/utils/slugify.js`
+### Contoh: `src/core/utils/slugify.ts`
 
-```js
+```ts
 /**
  * Konversi string ke URL slug.
  * Contoh: "Hello World!" → "hello-world"
- * @param {string} text
- * @returns {string}
  */
-export function slugify(text) {
+export function slugify(text: string): string {
   return text
     .toLowerCase()
     .trim()
@@ -204,15 +199,13 @@ export function slugify(text) {
 }
 ```
 
-### Contoh: `src/core/utils/date.js`
+### Contoh: `src/core/utils/date.ts`
 
-```js
+```ts
 /**
  * Format tanggal ke string Indonesia.
- * @param {Date} date
- * @returns {string}
  */
-export function formatDateIndo(date) {
+export function formatDateIndo(date: Date): string {
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -222,21 +215,19 @@ export function formatDateIndo(date) {
 
 /**
  * Cek apakah tanggal sudah lewat.
- * @param {Date} date
- * @returns {boolean}
  */
-export function isExpired(date) {
+export function isExpired(date: Date): boolean {
   return new Date() > new Date(date)
 }
 ```
 
 Import dan gunakan:
 
-```js
+```ts
 import { slugify } from '../../../core/utils/slugify.js'
 import { isExpired } from '../../../core/utils/date.js'
 
-async createPost(authorId, data) {
+async createPost(authorId: string, data: { title: string; content: string }): Promise<PostEntity> {
   return this.repository.create({
     ...data,
     slug: slugify(data.title),
@@ -261,8 +252,8 @@ async createPost(authorId, data) {
 
 ```
 src/core/utils/
-├── errors.js     ← Tambah subclass AppError baru di sini
-├── response.js   ← Tambah helper format response di sini
-├── slugify.js    ← Contoh utils custom (buat file baru jika topik berbeda)
-└── date.js       ← Contoh utils tanggal
+├── errors.ts     ← Tambah subclass AppError baru di sini
+├── response.ts   ← Tambah helper format response di sini
+├── slugify.ts    ← Contoh utils custom (buat file baru jika topik berbeda)
+└── date.ts       ← Contoh utils tanggal
 ```

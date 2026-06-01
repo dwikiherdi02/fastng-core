@@ -58,13 +58,13 @@ UserService.updateProfile()
 
 ### Langkah 1: Pastikan service yang akan di-share sudah mengeksport method yang dibutuhkan
 
-```js
-// src/modules/auth/services/auth.service.js
+```ts
+// src/modules/auth/services/auth.service.ts
 
 export class AuthService {
   // ...method yang sudah ada...
 
-  async revokeAllTokens(userId) {
+  async revokeAllTokens(userId: string): Promise<void> {
     await this.repository.deleteAllRefreshTokensForUser(userId)
   }
 }
@@ -72,8 +72,8 @@ export class AuthService {
 
 ### Langkah 2: Export service dari `index.js` modul asal
 
-```js
-// src/modules/auth/index.js
+```ts
+// src/modules/auth/index.ts
 
 export { AuthService } from './services/auth.service.js'
 export { createAuthRepository } from './repositories/auth.repository.js'
@@ -83,26 +83,28 @@ export { createAuthRepository } from './repositories/auth.repository.js'
 
 ### Langkah 3: Terima service sebagai dependency di constructor
 
-```js
-// src/modules/users/services/user.service.js
+```ts
+// src/modules/users/services/user.service.ts
+import type { PrismaClient } from '@prisma/client'
+import { NotFoundError } from '../../../core/utils/errors.js'
 
 export class UserService {
-  constructor({ userRepository, authRepository, authService, db }) {
-    this.userRepository = userRepository
-    this.authRepository = authRepository
-    this.authService = authService  // ← service dari modul lain
-    this.db = db
-  }
+  constructor(private deps: {
+    userRepository: any
+    authRepository: any
+    authService: any
+    db: PrismaClient | null
+  }) {}
 
-  async updateProfile(userId, data) {
-    const entity = await this.userRepository.findById(userId)
+  async updateProfile(userId: string, data: { email?: string; [key: string]: unknown }): Promise<any> {
+    const entity = await this.deps.userRepository.findById(userId)
     if (!entity) throw new NotFoundError('User not found')
 
-    const updated = await this.userRepository.update(userId, data)
+    const updated = await this.deps.userRepository.update(userId, data)
 
     // Service-in-service: revoke semua sesi aktif jika email berubah
     if (data.email && data.email !== entity.email) {
-      await this.authService.revokeAllTokens(userId)
+      await this.deps.authService.revokeAllTokens(userId)
     }
 
     return updated
@@ -112,16 +114,16 @@ export class UserService {
 
 ### Langkah 4: Wire semua dependency di `module.js`
 
-```js
-// src/modules/users/module.js
-
+```ts
+// src/modules/users/module.ts
+import type { FastifyInstance } from 'fastify'
 import { createUserRepository } from './repositories/user.repository.js'
 import { UserService } from './services/user.service.js'
 import { UserController } from './controllers/user.controller.js'
 import userRoutes from './routes/user.routes.js'
 import { createAuthRepository, AuthService } from '../auth/index.js'  // ← dari public API
 
-export default async function usersModule(fastify) {
+export default async function usersModule(fastify: FastifyInstance): Promise<void> {
   const userRepository = createUserRepository(fastify.db)
 
   // Instantiasi AuthService beserta repository-nya untuk di-inject ke UserService
@@ -142,29 +144,30 @@ export default async function usersModule(fastify) {
 Misalnya membuat `OrderService` yang perlu memverifikasi status user via `UserService`:
 
 **1. Pastikan `orders` ada di `dependsOn` yang benar di registry:**
-```js
-// src/registry/module.registry.js
+```ts
+// src/registry/module.registry.ts
 {
   name: 'orders',
   enabled: true,
-  path: '../modules/orders/module.js',
+  path: '../modules/orders/module.js',  // NodeNext ESM: path value stays .js
   dependsOn: ['auth', 'users'],  // boleh pakai AuthService dan UserService
 }
 ```
 
 **2. Export `UserService` dari `users/index.js`** (sudah ada):
-```js
-// src/modules/users/index.js
+```ts
+// src/modules/users/index.ts
 export { UserService } from './services/user.service.js'
 export { createUserRepository } from './repositories/user.repository.js'
 ```
 
 **3. Inject di `orders/module.js`:**
-```js
+```ts
 import { createUserRepository, UserService } from '../users/index.js'
 import { createAuthRepository, AuthService } from '../auth/index.js'
+import type { FastifyInstance } from 'fastify'
 
-export default async function ordersModule(fastify) {
+export default async function ordersModule(fastify: FastifyInstance): Promise<void> {
   // Wire deps dari modul lain
   const userRepository = createUserRepository(fastify.db)
   const authRepository = createAuthRepository(fastify.db)
@@ -180,20 +183,20 @@ export default async function ordersModule(fastify) {
 ```
 
 **4. Terima di constructor `OrderService`:**
-```js
+```ts
 export class OrderService {
-  constructor({ orderRepository, userService, db }) {
-    this.orderRepository = orderRepository
-    this.userService = userService
-    this.db = db
-  }
+  constructor(private deps: {
+    orderRepository: any
+    userService: UserService
+    db: any
+  }) {}
 
-  async createOrder(userId, items) {
+  async createOrder(userId: string, items: any[]): Promise<any> {
     // Reuse UserService business logic — bukan query DB langsung
-    const user = await this.userService.getProfile(userId)
+    const user = await this.deps.userService.getProfile(userId)
     if (user.role === 'suspended') throw new ForbiddenError('Account suspended')
 
-    return this.orderRepository.create({ userId, items })
+    return this.deps.orderRepository.create({ userId, items })
   }
 }
 ```
@@ -233,7 +236,7 @@ const user = await this.userService.getProfile(userId)  // includes NotFoundErro
 ## Contoh Nyata di Codebase Ini
 
 Lihat implementasi di:
-- `src/modules/users/services/user.service.js` — method `updateProfile()`, service-in-service ke `authService.revokeAllTokens()`
-- `src/modules/users/module.js` — wiring `AuthService` ke dalam `UserService`
-- `src/modules/auth/services/auth.service.js` — method `revokeAllTokens()` yang di-share
-- `src/modules/auth/index.js` — `AuthService` dan `createAuthRepository` di-export sebagai public API
+- `src/modules/users/services/user.service.ts` — method `updateProfile()`, service-in-service ke `authService.revokeAllTokens()`
+- `src/modules/users/module.ts` — wiring `AuthService` ke dalam `UserService`
+- `src/modules/auth/services/auth.service.ts` — method `revokeAllTokens()` yang di-share
+- `src/modules/auth/index.ts` — `AuthService` dan `createAuthRepository` di-export sebagai public API

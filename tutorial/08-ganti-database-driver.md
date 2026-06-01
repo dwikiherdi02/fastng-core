@@ -27,8 +27,8 @@ DATABASE_URL=file:./dev.db
 
 **Jalankan:**
 ```bash
-yarn db:push
-yarn dev
+npm run db:push
+npm run dev
 ```
 
 Log konfirmasi: `[DB] Connected to SQLite`
@@ -55,14 +55,14 @@ Ganti `user`, `password`, dan `FastNG_db` sesuai konfigurasi MySQL kamu.
 ### Langkah 3 — Generate Prisma Client dan push schema
 
 ```bash
-yarn db:generate
-yarn db:push
+npm run db:generate
+npm run db:push
 ```
 
 ### Langkah 4 — Jalankan server
 
 ```bash
-yarn dev
+npm run dev
 ```
 
 Log konfirmasi: `[DB] Connected to MySQL`
@@ -87,8 +87,8 @@ DATABASE_URL=postgresql://user:password@localhost:5432/FastNG_db
 ### Langkah 3 — Generate dan push
 
 ```bash
-yarn db:generate
-yarn db:push
+npm run db:generate
+npm run db:push
 ```
 
 Log konfirmasi: `[DB] Connected to PostgreSQL`
@@ -112,10 +112,10 @@ MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/FastNG_db
 ### Langkah 2 — Jalankan server
 
 ```bash
-yarn dev
+npm run dev
 ```
 
-Tidak perlu `yarn db:push` — Mongoose membuat collection otomatis saat data pertama dimasukkan.
+Tidak perlu `npm run db:push` — Mongoose membuat collection otomatis saat data pertama dimasukkan.
 
 Log konfirmasi: `[DB] Connected to MongoDB`
 
@@ -127,12 +127,13 @@ Log konfirmasi: `[DB] Connected to MongoDB`
 
 Setiap modul memiliki dua repository yang dipilih otomatis berdasarkan `DB_DRIVER`:
 
-```js
-// src/modules/users/repositories/user.repository.js
+```ts
+// src/modules/users/repositories/user.repository.ts
 import { UserPrismaRepository } from './user.prisma.repository.js'
 import { UserMongoRepository } from './user.mongo.repository.js'
+import type { FastifyInstance } from 'fastify'
 
-export function createUserRepository(fastify) {
+export function createUserRepository(fastify: FastifyInstance): UserPrismaRepository | UserMongoRepository {
   if (fastify.config.DB_DRIVER === 'mongodb') {
     return new UserMongoRepository()
   }
@@ -148,9 +149,9 @@ Factory ini dipanggil di `module.js` saat modul di-register. Kamu tidak perlu me
 
 | Perintah | Kapan digunakan |
 |---|---|
-| `yarn db:push` | Development — langsung apply tanpa history migrasi |
-| `yarn db:migrate` | Production — buat file migrasi SQL, ada history rollback |
-| `yarn db:studio` | Buka GUI database browser di browser |
+| `npm run db:push` | Development — langsung apply tanpa history migrasi |
+| `npm run db:migrate` | Production — buat file migrasi SQL, ada history rollback |
+| `npm run db:studio` | Buka GUI database browser di browser |
 
 Untuk development awal, selalu gunakan `db:push`. Untuk production, gunakan `db:migrate` agar ada trail perubahan schema.
 
@@ -162,4 +163,4 @@ Untuk development awal, selalu gunakan `db:push`. Untuk production, gunakan `db:
 - Pastikan service database (MySQL/PostgreSQL/MongoDB) sudah running sebelum `yarn dev`
 - `DATABASE_URL` wajib diisi untuk semua Prisma driver (sqlite, mysql, postgresql)
 - `MONGODB_URI` wajib untuk MongoDB
-- Setelah ganti schema Prisma, selalu jalankan `yarn db:generate` sebelum `yarn dev`
+- Setelah ganti schema Prisma, selalu jalankan `npm run db:generate` sebelum `npm run dev`

@@ -1,18 +1,18 @@
 ﻿# Mengaktifkan dan Menonaktifkan Modul
 
-FastNG menggunakan registry terpusat di `src/registry/module.registry.js` untuk mengontrol modul mana yang aktif. Modul yang dinonaktifkan tidak akan dimuat — route, service, dan repository-nya tidak ada di runtime.
+FastNG menggunakan registry terpusat di `src/registry/module.registry.ts` untuk mengontrol modul mana yang aktif. Modul yang dinonaktifkan tidak akan dimuat — route, service, dan repository-nya tidak ada di runtime.
 
 ---
 
 ## Struktur Registry
 
-```js
-// src/registry/module.registry.js
+```ts
+// src/registry/module.registry.ts
 export const modules = [
   {
     name: 'welcome',
     enabled: true,
-    path: '../modules/welcome/module.js',
+    path: '../modules/welcome/module.js',   // NodeNext ESM: path value stays .js
     dependsOn: []
   },
   {
@@ -42,7 +42,7 @@ Setiap entri memiliki 4 field:
 
 Ubah `enabled` menjadi `false`:
 
-```js
+```ts
 {
   name: 'welcome',
   enabled: false,   // dinonaktifkan
@@ -51,7 +51,7 @@ Ubah `enabled` menjadi `false`:
 }
 ```
 
-Restart server (`yarn dev`) — route `GET /` tidak akan tersedia lagi. Log startup tidak akan menampilkan modul ini.
+Restart server (`npm run dev`) — route `GET /` tidak akan tersedia lagi. Log startup tidak akan menampilkan modul ini.
 
 ---
 
@@ -65,8 +65,8 @@ Ubah kembali ke `enabled: true` dan restart server.
 
 Untuk mengontrol modul berdasarkan environment tanpa mengubah kode:
 
-```js
-// src/registry/module.registry.js
+```ts
+// src/registry/module.registry.ts
 export const modules = [
   // ... modul lain ...
   {
@@ -94,7 +94,7 @@ Ganti env var, restart server — tidak perlu ubah kode sama sekali.
 
 ## Cara Kerja `dependsOn`
 
-`module.loader.js` menggunakan **Kahn's topological sort** untuk menentukan urutan loading:
+`module.loader.ts` menggunakan **Kahn's topological sort** untuk menentukan urutan loading:
 
 ```
 Contoh dengan dependensi:
@@ -146,8 +146,8 @@ Solusi: pastikan semua modul yang ada di `dependsOn` juga `enabled: true`.
 
 Setelah membuat modul `posts` (lihat [Menambah Modul Baru](01-menambah-modul-baru.md)):
 
-```js
-// src/registry/module.registry.js
+```ts
+// src/registry/module.registry.ts
 export const modules = [
   { name: 'welcome', enabled: true, path: '../modules/welcome/module.js', dependsOn: [] },
   { name: 'auth', enabled: true, path: '../modules/auth/module.js', dependsOn: [] },

@@ -8,7 +8,7 @@ Semua environment variable di FastNG divalidasi saat startup menggunakan Zod di 
 
 1. Variable dibaca dari `.env` via `node --env-file=.env`
 2. Zod memvalidasi semua variable di `envSchema`
-3. Hasil validasi tersedia di `fastify.config` (didaftarkan oleh `db.plugin.js`)
+3. Hasil validasi tersedia di `fastify.config` (didaftarkan oleh `db.plugin.ts`)
 4. Semua plugin dan modul bisa akses via `fastify.config.NAMA_VARIABLE`
 
 ---
@@ -26,11 +26,11 @@ SMTP_PASS=supersecretpassword
 EMAIL_ENABLED=true
 ```
 
-### Langkah 2 — Tambahkan ke Schema Zod di `env.config.js`
+### Langkah 2 — Tambahkan ke Schema Zod di `env.config.ts`
 
-Edit `src/core/config/env.config.js` dan tambahkan field baru ke `envSchema`:
+Edit `src/core/config/env.config.ts` dan tambahkan field baru ke `envSchema`:
 
-```js
+```ts
 const envSchema = z.object({
   // ... variable yang sudah ada ...
 
@@ -45,13 +45,15 @@ const envSchema = z.object({
 
 ### Langkah 3 — Gunakan di Plugin Baru
 
-Buat `src/core/plugins/email.plugin.js`:
+Buat `src/core/plugins/email.plugin.ts`:
 
-```js
+```ts
 import fp from 'fastify-plugin'
 import nodemailer from 'nodemailer'
+import env from '../config/env.config.js'
+import type { FastifyInstance } from 'fastify'
 
-async function emailPlugin(fastify) {
+async function emailPlugin(fastify: FastifyInstance): Promise<void> {
   // Skip jika email tidak diaktifkan
   if (!fastify.config.EMAIL_ENABLED) return
 
@@ -64,25 +66,36 @@ async function emailPlugin(fastify) {
     }
   })
 
-  fastify.decorate('mailer', transporter)
   fastify.log.info('[Email] Mailer initialized')
+
+  async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
+    await transporter.sendMail({
+      from: `"FastNG" <${fastify.config.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    })
+  }
+
+  // Daftarkan sebagai decorator agar tersedia di seluruh app
+  fastify.decorate('mailer', { sendEmail })
 }
 
 export default fp(emailPlugin)
 ```
 
-Daftarkan di `src/app.js`:
+Daftarkan di `src/app.ts`:
 
-```js
+```ts
 import emailPlugin from './core/plugins/email.plugin.js'
 await app.register(emailPlugin)
 ```
 
-Gunakan di service lewat injection di `module.js`:
+Gunakan di service lewat injection di `module.ts`:
 
-```js
-// src/modules/auth/module.js
-export default async function authModule(fastify) {
+```ts
+// src/modules/auth/module.ts
+export default async function authModule(fastify: FastifyInstance): Promise<void> {
   const repository = createAuthRepository(fastify)
   const service = new AuthService(repository, fastify, fastify.mailer)  // inject mailer
   // ...
@@ -112,7 +125,7 @@ export default async function authModule(fastify) {
 
 Contoh: `MONGODB_URI` wajib hanya jika `DB_DRIVER=mongodb`:
 
-```js
+```ts
 const envSchema = z.object({
   DB_DRIVER: z.enum(['sqlite', 'mysql', 'postgresql', 'mongodb']),
   DATABASE_URL: z.string().optional(),

@@ -1,6 +1,6 @@
 ﻿# FastNG
 
-REST API boilerplate berbasis **Modular Clean Architecture** menggunakan **Fastify** + **Node.js**.  
+REST API boilerplate berbasis **Modular Clean Architecture** menggunakan **Fastify** + **Node.js** + **TypeScript**.  
 Mendukung multiple database driver (SQLite, MySQL, PostgreSQL, MongoDB) yang dapat diganti hanya lewat environment variable.
 
 ---
@@ -10,6 +10,7 @@ Mendukung multiple database driver (SQLite, MySQL, PostgreSQL, MongoDB) yang dap
 | Layer | Teknologi |
 |---|---|
 | Runtime | Node.js >= 20 |
+| Language | TypeScript 5 (strict mode, NodeNext ESM) |
 | HTTP Framework | Fastify 5 |
 | ORM (relational) | Prisma |
 | ODM (MongoDB) | Mongoose |
@@ -17,6 +18,7 @@ Mendukung multiple database driver (SQLite, MySQL, PostgreSQL, MongoDB) yang dap
 | Auth | JWT (`@fastify/jwt`) + bcrypt |
 | API Docs | Swagger UI (`/docs`) |
 | Logging | Pino (built-in Fastify) |
+| Dev build | tsx (zero-build dev server) |
 
 ---
 
@@ -39,7 +41,7 @@ git clone <repo-url>
 cd FastNG
 
 # 2. Install dependencies
-yarn install
+yarn
 
 # 3. Salin file env dan sesuaikan
 cp .env.example .env
@@ -133,7 +135,8 @@ yarn dev
 # Development (auto-restart on file change)
 yarn dev
 
-# Production
+# Production (compile dulu)
+yarn build
 yarn start
 ```
 
@@ -303,35 +306,35 @@ Semua response menggunakan envelope yang seragam:
 src/
 ├── core/
 │   ├── config/
-│   │   └── env.config.js          # Validasi env vars (Zod), fail-fast
+│   │   └── env.config.ts          # Validasi env vars (Zod), fail-fast
 │   ├── database/
 │   │   ├── drivers/
-│   │   │   ├── prisma.driver.js   # PrismaClient singleton
-│   │   │   └── mongoose.driver.js # Mongoose connect/disconnect
+│   │   │   ├── prisma.driver.ts   # PrismaClient singleton
+│   │   │   └── mongoose.driver.ts # Mongoose connect/disconnect
 │   │   ├── models/
-│   │   │   ├── user.model.js      # Mongoose User schema
-│   │   │   └── refresh-token.model.js
-│   │   └── index.js               # connectDb() / disconnectDb() by driver
+│   │   │   ├── user.model.ts      # Mongoose User schema + types
+│   │   │   └── refresh-token.model.ts
+│   │   └── index.ts               # connectDb() / disconnectDb() by driver
 │   ├── middlewares/
-│   │   └── error-handler.js       # Global error → HTTP status mapping
+│   │   └── error-handler.ts       # Global error → HTTP status mapping
 │   ├── plugins/
-│   │   ├── db.plugin.js           # Koneksi DB + fastify.db decorator
-│   │   ├── jwt.plugin.js          # JWT + fastify.authenticate decorator
-│   │   ├── cors.plugin.js
-│   │   ├── helmet.plugin.js
-│   │   ├── rate-limit.plugin.js
-│   │   └── swagger.plugin.js      # OpenAPI + Swagger UI
+│   │   ├── db.plugin.ts           # Koneksi DB + fastify.db decorator
+│   │   ├── jwt.plugin.ts          # JWT + fastify.authenticate decorator
+│   │   ├── cors.plugin.ts
+│   │   ├── helmet.plugin.ts
+│   │   ├── rate-limit.plugin.ts
+│   │   └── swagger.plugin.ts      # OpenAPI + Swagger UI
 │   └── utils/
-│       ├── errors.js              # NotFoundError, ConflictError, dll
-│       └── response.js            # successResponse / errorResponse
+│       ├── errors.ts              # NotFoundError, ConflictError, dll
+│       └── response.ts            # successResponse / errorResponse
 │
 ├── modules/
 │   ├── auth/
-│   │   ├── index.js               # Public API modul
-│   │   ├── module.js              # Entry point, register routes
+│   │   ├── index.ts               # Public API modul (re-export types + classes)
+│   │   ├── module.ts              # Entry point, register routes
 │   │   ├── entities/              # Pure domain object
-│   │   ├── dto/                   # Request/response shape + Zod schema
-│   │   ├── repositories/          # Prisma impl, Mongo impl, factory
+│   │   ├── dto/                   # Request/response shape + Zod schema + types
+│   │   ├── repositories/          # Interface, Prisma impl, Mongo impl, factory
 │   │   ├── services/              # Business logic
 │   │   ├── controllers/           # Orchestrasi request/response
 │   │   └── routes/                # HTTP routing
@@ -339,11 +342,13 @@ src/
 │   └── welcome/                   # Controller + routes saja
 │
 ├── registry/
-│   ├── module.registry.js         # Deklarasi modul: name, enabled, dependsOn
-│   └── module.loader.js           # Topological sort + dep validation
+│   ├── module.registry.ts         # Deklarasi modul: name, enabled, dependsOn
+│   └── module.loader.ts           # Topological sort + dep validation
 │
-├── app.js                         # Build Fastify instance (plugins + modules)
-└── server.js                      # Entrypoint — start HTTP server
+├── types/
+│   └── fastify.d.ts               # Augmentasi FastifyInstance + FastifyJWT
+├── app.ts                         # Build Fastify instance (plugins + modules)
+└── server.ts                      # Entrypoint — start HTTP server
 
 prisma/
 ├── schema.prisma                  # Schema aktif (default: SQLite)
@@ -360,23 +365,23 @@ Ikuti langkah berikut untuk membuat modul `posts` sebagai contoh:
 **1. Buat folder dan file modul**
 ```
 src/modules/posts/
-├── index.js
-├── module.js
-├── entities/post.entity.js
-├── dto/create-post.request.dto.js
-├── dto/post.response.dto.js
-├── repositories/post.prisma.repository.js
-├── repositories/post.mongo.repository.js
-├── repositories/post.repository.js
-├── services/post.service.js
-├── controllers/post.controller.js
-└── routes/post.routes.js
+├── index.ts
+├── module.ts
+├── entities/post.entity.ts
+├── dto/create-post.request.dto.ts
+├── dto/post.response.dto.ts
+├── repositories/post.prisma.repository.ts
+├── repositories/post.mongo.repository.ts
+├── repositories/post.repository.ts
+├── services/post.service.ts
+├── controllers/post.controller.ts
+└── routes/post.routes.ts
 ```
 
 **2. Daftarkan di registry**
 
-Edit `src/registry/module.registry.js`:
-```js
+Edit `src/registry/module.registry.ts`:
+```ts
 {
   name: 'posts',
   enabled: true,
@@ -384,6 +389,8 @@ Edit `src/registry/module.registry.js`:
   dependsOn: ['auth', 'users'],
 }
 ```
+
+> **Catatan:** `path` tetap menggunakan ekstensi `.js` karena NodeNext ESM memerlukan import path eksplisit — saat dev `tsx` me-resolve `.js` → `.ts` secara transparan.
 
 **3. Tambahkan model Prisma** (jika relational)
 
@@ -413,13 +420,15 @@ Modul akan otomatis terdaftar saat server restart — tanpa mengubah `app.js`.
 
 | Script | Perintah | Deskripsi |
 |---|---|---|
-| `yarn dev` | `node --env-file=.env --watch src/server.js` | Development server |
-| `yarn start` | `node --env-file=.env src/server.js` | Production server |
+| `yarn dev` | `node --env-file=.env --import tsx/esm --watch src/server.ts` | Development server (no build needed) |
+| `yarn build` | `tsc` | Compile TypeScript ke `dist/` |
+| `yarn start` | `node --env-file=.env dist/server.js` | Production server (jalankan setelah build) |
 | `yarn db:generate` | `prisma generate` | Generate Prisma Client |
 | `yarn db:migrate` | `prisma migrate dev` | Buat + jalankan migrasi |
 | `yarn db:push` | `prisma db push` | Push schema tanpa migrasi (dev) |
-| `yarn lint` | `eslint src/` | Lint kode |
+| `yarn lint` | `eslint src/` | Lint kode TypeScript |
 | `yarn format` | `prettier --write src/` | Format kode |
+| `yarn audit` | `npm audit --audit-level=high` | Cek keamanan dependency |
 
 ---
 

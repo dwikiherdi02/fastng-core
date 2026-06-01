@@ -19,8 +19,8 @@ FastNG menggunakan dua skema secara bersamaan untuk setiap request/response:
 
 ## Struktur DTO — Satu File, Dua Export
 
-```js
-// src/modules/posts/dto/create-post.request.dto.js
+```ts
+// src/modules/posts/dto/create-post.request.dto.ts
 import { z } from 'zod'
 
 // Bagian 1: Zod — untuk validasi di controller
@@ -29,6 +29,8 @@ export const CreatePostSchema = z.object({
   content: z.string().min(10),
   published: z.boolean().optional().default(false)
 })
+
+export type CreatePostRequest = z.infer<typeof CreatePostSchema>
 
 // Bagian 2: JSON Schema — untuk Fastify/Swagger
 export const CreatePostJsonSchema = {
@@ -48,8 +50,8 @@ export const CreatePostJsonSchema = {
 
 ### Langkah 1 — Buat file DTO
 
-```js
-// src/modules/posts/dto/create-post.request.dto.js
+```ts
+// src/modules/posts/dto/create-post.request.dto.ts
 import { z } from 'zod'
 
 export const CreatePostSchema = z.object({
@@ -60,6 +62,8 @@ export const CreatePostSchema = z.object({
     .min(10, 'Minimal 10 karakter'),
   tags: z.array(z.string()).optional().default([])
 })
+
+export type CreatePostRequest = z.infer<typeof CreatePostSchema>
 
 export const CreatePostJsonSchema = {
   type: 'object',
@@ -74,14 +78,15 @@ export const CreatePostJsonSchema = {
 
 ### Langkah 2 — Validasi di Controller
 
-```js
-// src/modules/posts/controllers/post.controller.js
+```ts
+// src/modules/posts/controllers/post.controller.ts
 import { CreatePostSchema } from '../dto/create-post.request.dto.js'
 import { ValidationError } from '../../../core/utils/errors.js'
 import { successResponse } from '../../../core/utils/response.js'
+import type { FastifyRequest, FastifyReply } from 'fastify'
 
 export class PostController {
-  async create(request, reply) {
+  async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     // Validasi input dengan Zod
     const parsed = CreatePostSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -97,11 +102,13 @@ export class PostController {
 
 ### Langkah 3 — Daftarkan di Route
 
-```js
-// src/modules/posts/routes/post.routes.js
+```ts
+// src/modules/posts/routes/post.routes.ts
 import { CreatePostJsonSchema } from '../dto/create-post.request.dto.js'
+import type { FastifyInstance } from 'fastify'
+import type { PostController } from '../controllers/post.controller.js'
 
-export async function postRoutes(fastify, controller) {
+export async function postRoutes(fastify: FastifyInstance, controller: PostController): Promise<void> {
   const auth = { preHandler: [fastify.authenticate] }
 
   fastify.post('/posts', {
@@ -172,8 +179,8 @@ export const PostListResponseSchema = {
 
 ## Validasi Query Parameter
 
-```js
-// src/modules/posts/dto/list-posts.query.dto.js
+```ts
+// src/modules/posts/dto/list-posts.query.dto.ts
 import { z } from 'zod'
 
 export const ListPostsQuerySchema = z.object({
@@ -181,6 +188,8 @@ export const ListPostsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   published: z.enum(['true', 'false']).optional()
 })
+
+export type ListPostsQuery = z.infer<typeof ListPostsQuerySchema>
 
 export const ListPostsQueryJsonSchema = {
   type: 'object',
@@ -194,8 +203,8 @@ export const ListPostsQueryJsonSchema = {
 
 Di controller:
 
-```js
-async findAll(request, reply) {
+```ts
+async findAll(request: FastifyRequest<{ Querystring: { page?: string; limit?: string; published?: string } }>, reply: FastifyReply): Promise<void> {
   const parsed = ListPostsQuerySchema.safeParse(request.query)
   if (!parsed.success) {
     throw new ValidationError(parsed.error.errors[0].message)
@@ -213,8 +222,8 @@ async findAll(request, reply) {
 
 Untuk update endpoint, semua field opsional tapi minimal satu harus ada:
 
-```js
-// src/modules/posts/dto/update-post.request.dto.js
+```ts
+// src/modules/posts/dto/update-post.request.dto.ts
 import { z } from 'zod'
 
 export const UpdatePostSchema = z.object({
@@ -225,6 +234,8 @@ export const UpdatePostSchema = z.object({
   data => Object.values(data).some(v => v !== undefined),
   { message: 'At least one field must be provided' }
 )
+
+export type UpdatePostRequest = z.infer<typeof UpdatePostSchema>
 
 export const UpdatePostJsonSchema = {
   type: 'object',

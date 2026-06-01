@@ -25,13 +25,13 @@ Setelah `fastify.authenticate` berhasil, `request.user.role` tersedia di control
 
 Pola yang sudah dipakai di `UserController.findAll`:
 
-```js
-// src/modules/posts/controllers/post.controller.js
+```ts
+import type { FastifyRequest, FastifyReply } from 'fastify'
 import { ForbiddenError } from '../../../core/utils/errors.js'
 import { successResponse } from '../../../core/utils/response.js'
 
 export class PostController {
-  async deleteAnyPost(request, reply) {
+  async deleteAnyPost(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply): Promise<void> {
     // Hanya admin yang boleh hapus post milik siapapun
     if (request.user.role !== 'admin') {
       throw new ForbiddenError('Only admins can delete any post')
@@ -49,13 +49,13 @@ export class PostController {
 
 Buat plugin `requireAdmin` yang bisa dipakai di banyak route:
 
-```js
-// src/core/plugins/auth-guard.plugin.js
+```ts
+// src/core/plugins/auth-guard.plugin.ts
 import fp from 'fastify-plugin'
 import { ForbiddenError } from '../utils/errors.js'
 
-async function authGuardPlugin(fastify) {
-  fastify.decorate('requireAdmin', async function (request) {
+async function authGuardPlugin(fastify: any): Promise<void> {
+  fastify.decorate('requireAdmin', async function (request: any) {
     if (request.user.role !== 'admin') {
       throw new ForbiddenError('Admin access required')
     }
@@ -65,9 +65,9 @@ async function authGuardPlugin(fastify) {
 export default fp(authGuardPlugin)
 ```
 
-Daftarkan di `src/app.js` setelah jwt.plugin:
+Daftarkan di `src/app.ts` setelah jwt.plugin:
 
-```js
+```ts
 import authGuardPlugin from './core/plugins/auth-guard.plugin.js'
 
 // ... setelah register jwt.plugin
@@ -76,7 +76,7 @@ await app.register(authGuardPlugin)
 
 Gunakan di route:
 
-```js
+```ts
 const adminOnly = {
   preHandler: [fastify.authenticate, fastify.requireAdmin]
 }
@@ -92,22 +92,22 @@ fastify.delete('/admin/posts/:id', adminOnly, controller.adminDelete.bind(contro
 ### Opsi A — Prisma Studio (GUI)
 
 ```bash
-yarn db:studio
+npm run db:studio
 ```
 
 Buka browser, temukan user, ubah kolom `role` dari `'user'` menjadi `'admin'`, klik Save.
 
 ### Opsi B — Script seed
 
-Buat file `prisma/seed.js`:
+Buat file `prisma/seed.ts`:
 
-```js
+```ts
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
-async function main() {
+async function main(): Promise<void> {
   const hash = await bcrypt.hash('Admin123!', 10)
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
@@ -128,7 +128,7 @@ main().finally(() => prisma.$disconnect())
 Jalankan:
 
 ```bash
-node --env-file=.env prisma/seed.js
+node --env-file=.env --import tsx/esm prisma/seed.ts
 ```
 
 ---
@@ -137,10 +137,12 @@ node --env-file=.env prisma/seed.js
 
 Contoh — user hanya bisa lihat post milik sendiri, admin bisa lihat semua:
 
-```js
-// src/modules/posts/services/post.service.js
+```ts
+// src/modules/posts/services/post.service.ts
+import type { UserPayload } from '../../../types/fastify.js'
+
 export class PostService {
-  async findAll(requestingUser) {
+  async findAll(requestingUser: UserPayload) {
     if (requestingUser.role === 'admin') {
       // Admin: lihat semua post
       return this.repository.findAll()
@@ -151,10 +153,13 @@ export class PostService {
 }
 ```
 
-```js
-// src/modules/posts/controllers/post.controller.js
+```ts
+// src/modules/posts/controllers/post.controller.ts
+import type { FastifyRequest, FastifyReply } from 'fastify'
+import { successResponse } from '../../../core/utils/response.js'
+
 export class PostController {
-  async findAll(request, reply) {
+  async findAll(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     // Kirim data user ke service untuk diputuskan logic-nya
     const result = await this.service.findAll(request.user)
     return reply.send(successResponse(result))
@@ -164,7 +169,7 @@ export class PostController {
 
 Di route, endpoint ini harus protected (user harus login):
 
-```js
+```ts
 const auth = { preHandler: [fastify.authenticate] }
 fastify.get('/posts', auth, controller.findAll.bind(controller))
 ```
@@ -185,12 +190,12 @@ enum Role {
 }
 ```
 
-2. Push schema: `yarn db:push`
+2. Push schema: `npm run db:push`
 
 3. Tambah guard di plugin:
 
-```js
-fastify.decorate('requireModerator', async function (request) {
+```ts
+fastify.decorate('requireModerator', async function (request: any): Promise<void> {
   if (!['admin', 'moderator'].includes(request.user.role)) {
     throw new ForbiddenError('Moderator access required')
   }

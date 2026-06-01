@@ -35,11 +35,11 @@ Semua error adalah subclass dari `AppError` — kamu hanya perlu menambahkan cla
 
 ## Cara Menambah Error Type Baru
 
-### Langkah 1 — Tambahkan Class di `errors.js`
+### Langkah 1 — Tambahkan Class di `errors.ts`
 
-Edit `src/core/utils/errors.js` dan tambahkan di bawah error yang sudah ada:
+Edit `src/core/utils/errors.ts` dan tambahkan di bawah error yang sudah ada:
 
-```js
+```ts
 // Error 429 — kuota habis
 export class QuotaExceededError extends AppError {
   constructor(message = 'Quota exceeded') {
@@ -64,11 +64,11 @@ export class ServiceUnavailableError extends AppError {
 
 ### Langkah 2 — Gunakan di Service
 
-```js
+```ts
 import { QuotaExceededError } from '../../../core/utils/errors.js'
 
 export class PostService {
-  async createPost(authorId, data) {
+  async createPost(authorId: string, data: { title: string; content: string }): Promise<PostEntity> {
     const count = await this.repository.countByAuthor(authorId)
     if (count >= 10) {
       throw new QuotaExceededError('You have reached the maximum of 10 posts')
@@ -97,28 +97,30 @@ HTTP status `429 Too Many Requests`.
 
 Jika perlu menyertakan detail field yang gagal validasi:
 
-```js
+```ts
 export class ValidationError extends AppError {
-  constructor(message = 'Validation failed', errors = []) {
+  errors: { field: string; message: string }[]
+
+  constructor(message = 'Validation failed', errors: { field: string; message: string }[] = []) {
     super(message, 422)
     this.errors = errors
   }
 }
 ```
 
-Update error handler di `src/core/middlewares/error-handler.js`:
+Update error handler di `src/core/middlewares/error-handler.ts`:
 
-```js
+```ts
 if (error instanceof AppError) {
   const body = errorResponse(error.message)
-  if (error.errors) body.errors = error.errors
+  if ('errors' in error) (body as any).errors = error.errors
   return reply.code(error.statusCode).send(body)
 }
 ```
 
 Penggunaan di service:
 
-```js
+```ts
 throw new ValidationError('Input tidak valid', [
   { field: 'email', message: 'Email sudah terdaftar' }
 ])
