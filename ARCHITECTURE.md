@@ -54,7 +54,8 @@ FastNG/
 │   │   │   ├── cors.plugin.ts
 │   │   │   ├── helmet.plugin.ts
 │   │   │   ├── rate-limit.plugin.ts
-│   │   │   └── swagger.plugin.ts      # OpenAPI spec + Swagger UI at /docs
+│   │   │   ├── swagger.plugin.ts      # OpenAPI spec + Swagger UI at /docs
+│   │   │   └── schedule.plugin.ts     # @fastify/schedule + fastify.scheduler decorator
 │   │   └── utils/
 │   │       ├── errors.ts              # NotFoundError, ConflictError, UnauthorizedError, dll
 │   │       └── response.ts            # successResponse() / errorResponse()
@@ -79,6 +80,7 @@ FastNG/
 │   │   │   │   └── auth.controller.ts
 │   │   │   └── routes/
 │   │   │       └── auth.routes.ts
+│   │   │       └── jobs/              # Scheduled jobs (SimpleIntervalJob, CronJob)
 │   │   │
 │   │   ├── users/
 │   │   │   ├── module.ts
@@ -98,6 +100,7 @@ FastNG/
 │   │   │   │   └── user.controller.ts
 │   │   │   └── routes/
 │   │   │       └── user.routes.ts
+│   │   │       └── jobs/              # Scheduled jobs (SimpleIntervalJob, CronJob)
 │   │   │
 │   │   └── welcome/
 │   │       ├── module.ts
@@ -209,6 +212,7 @@ Everything else inside the module is private.
 | Error handling | `core/middlewares/errorHandler` | Catches all thrown errors globally |
 | Logging | `core/utils/logger` | Structured log (JSON in production) |
 | Response format | `core/utils/response` | Uniform `{ success, data, meta }` envelope |
+| Scheduling | `core/plugins/schedule.plugin.ts` | Periodic jobs via `@fastify/schedule` + `toad-scheduler` |
 
 ---
 
@@ -312,6 +316,12 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 | [pino](https://getpino.io) | Structured logger (built into Fastify) |
 | [pino-pretty](https://github.com/pinojs/pino-pretty) | Human-readable logs in development |
 
+#### Scheduling
+| Package | Purpose |
+|---|---|
+| [@fastify/schedule](https://github.com/fastify/fastify-schedule) | Periodic job scheduler plugin |
+| [toad-scheduler](https://github.com/kibertoad/toad-scheduler) | Job scheduler engine (SimpleIntervalJob, CronJob) |
+
 #### Testing
 | Package | Purpose |
 |---|---|
@@ -348,5 +358,7 @@ Disabling `auth` will cause the loader to reject `user` and `product` at startup
 - **Import paths** in TypeScript source always use `.js` extension (NodeNext ESM — tsx resolves them to `.ts` at dev time)
 - **Types**: export repository interfaces (`IAuthRepository`, `IUserRepository`) from `repositories/X.repository.ts` and re-export via `index.ts` as `export type { ... }`
 - When adding a module that depends on another, add it to `dependsOn[]` in the registry
+- **Scheduled jobs**: Jobs must be registered in `module.ts` using `fastify.scheduler.addSimpleIntervalJob()` or `fastify.scheduler.addCronJob()` — never import scheduler directly from `@fastify/schedule`
+- **Job files**: Place job definitions in `src/modules/{module}/jobs/` folder with naming convention `{action}.job.ts`
 - DTO files: `{action}.request.dto` for input, `{name}.response.dto` for output
 - Entity files contain domain logic only — treat them as pure functions / value objects

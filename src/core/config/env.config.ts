@@ -13,6 +13,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
   CORS_ORIGIN: z.string().default('*'),
+  SCHEDULER_ENABLED: z.boolean().default(true),
 })
 
 export type Env = z.infer<typeof envSchema>

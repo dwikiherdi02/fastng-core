@@ -287,6 +287,13 @@
     fastify-plugin "^5.0.0"
     toad-cache "^3.7.0"
 
+"@fastify/schedule@^6.0.0":
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/@fastify/schedule/-/schedule-6.0.0.tgz#0a82d2c49e9f2411b9aee312c5eb178b1dceb3fc"
+  integrity sha512-q4mPXUtqISb+dH2cB7HE7DxXqQmxPee9k0G29ydvGOoj5Aqb+uzUCLtkMVAzpnkPE6oOFGon6+JzWEmfJNS8ig==
+  dependencies:
+    fastify-plugin "^5.0.0"
+
 "@fastify/send@^4.0.0":
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/@fastify/send/-/send-4.1.0.tgz#d9c283b86e12080c0dcc160bbc16106debf1f0d3"
@@ -787,6 +794,11 @@ cookie@^1.0.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/cookie/-/cookie-1.1.1.tgz#3bb9bdfc82369db9c2f69c93c9c3ceb310c88b3c"
   integrity sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==
+
+croner@^10.0.1:
+  version "10.0.1"
+  resolved "https://registry.yarnpkg.com/croner/-/croner-10.0.1.tgz#4eb92806c99539146dbe2f3ee3907e319cb2847a"
+  integrity sha512-ixNtAJndqh173VQ4KodSdJEI6nuioBWI0V1ITNKhZZsO0pEMoDxz539T4FTTbSZ/xIOSuDnzxLVRqBVSvPNE2g==
 
 cross-spawn@^7.0.6:
   version "7.0.6"
@@ -1919,6 +1931,13 @@ toad-cache@^3.7.0:
   version "3.7.1"
   resolved "https://registry.yarnpkg.com/toad-cache/-/toad-cache-3.7.1.tgz#33441aab508e15a35fb5292c61ee3322c0853822"
   integrity sha512-5DXWzE4Vz7xNHsv+xQ+MGfJYyC78Aok3tEr0MNwHoRf7vZnga1mQXZ4/Nsodld4VR6Wd+VhfmqnNrsRJyYPfrQ==
+
+toad-scheduler@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/toad-scheduler/-/toad-scheduler-4.0.1.tgz#9217358dd295be4db332e7b9400f31f8e885fd24"
+  integrity sha512-utMUvxJmzqmuQzkqFyJdspuDvoVsO5SgQUvEtyZcrVvSwHLOttD+m6SjJZ2u6LoKw5k7zh4vihqjvENbHLfdNA==
+  dependencies:
+    croner "^10.0.1"
 
 toidentifier@~1.0.1:
   version "1.0.1"

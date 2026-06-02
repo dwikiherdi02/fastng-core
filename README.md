@@ -18,6 +18,7 @@ Mendukung multiple database driver (SQLite, MySQL, PostgreSQL, MongoDB) yang dap
 | Auth | JWT (`@fastify/jwt`) + bcrypt |
 | API Docs | Swagger UI (`/docs`) |
 | Logging | Pino (built-in Fastify) |
+| Scheduling | `@fastify/schedule` + `toad-scheduler` |
 | Dev build | tsx (zero-build dev server) |
 
 ---
@@ -80,6 +81,9 @@ RATE_LIMIT_WINDOW=1 minute
 
 # ── CORS ──────────────────────────────────────────
 CORS_ORIGIN=*
+
+# ── Scheduler ─────────────────────────────────────
+SCHEDULER_ENABLED=true
 ```
 
 ### Ganti Database Driver
@@ -323,7 +327,8 @@ src/
 │   │   ├── cors.plugin.ts
 │   │   ├── helmet.plugin.ts
 │   │   ├── rate-limit.plugin.ts
-│   │   └── swagger.plugin.ts      # OpenAPI + Swagger UI
+│   │   ├── swagger.plugin.ts      # OpenAPI + Swagger UI
+│   │   └── schedule.plugin.ts     # Scheduled jobs via @fastify/schedule
 │   └── utils/
 │       ├── errors.ts              # NotFoundError, ConflictError, dll
 │       └── response.ts            # successResponse / errorResponse
@@ -338,6 +343,7 @@ src/
 │   │   ├── services/              # Business logic
 │   │   ├── controllers/           # Orchestrasi request/response
 │   │   └── routes/                # HTTP routing
+│   │   └── jobs/                  # Scheduled jobs (SimpleIntervalJob, CronJob)
 │   ├── users/                     # Struktur sama seperti auth
 │   └── welcome/                   # Controller + routes saja
 │

@@ -6,6 +6,7 @@ import corsPlugin from './core/plugins/cors.plugin.js'
 import rateLimitPlugin from './core/plugins/rate-limit.plugin.js'
 import dbPlugin from './core/plugins/db.plugin.js'
 import jwtPlugin from './core/plugins/jwt.plugin.js'
+import schedulePlugin from './core/plugins/schedule.plugin.js'
 import errorHandler from './core/middlewares/error-handler.js'
 import { loadModules } from './registry/module.loader.js'
 
@@ -23,6 +24,7 @@ export async function buildApp() {
   await fastify.register(rateLimitPlugin)
   await fastify.register(dbPlugin)
   await fastify.register(jwtPlugin)
+  await fastify.register(schedulePlugin)
 
   fastify.setErrorHandler(errorHandler)
 
