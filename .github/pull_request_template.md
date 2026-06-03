@@ -1,33 +1,33 @@
-## Description
-<!-- Provide a clear and concise description of the changes introduced in this PR -->
+## Deskripsi
+<!-- Berikan deskripsi yang jelas dan ringkas tentang perubahan yang diperkenalkan dalam PR ini -->
 
-## Type of Change
-- [ ] ✨ Feature
-- [ ] 🐛 Bug Fix
+## Tipe Perubahan
+- [ ] ✨ Fitur Baru
+- [ ] 🐛 Perbaikan Bug
 - [ ] ♻️ Refactor
-- [ ] 📝 Documentation
-- [ ] 🚀 Performance Improvement
+- [ ] 📝 Dokumentasi
+- [ ] 🚀 Peningkatan Performa
 
-## Architecture Checklist
-*Please ensure your changes adhere to the Modular Clean Architecture defined in `ARCHITECTURE.md` and `.github/copilot-instructions.md`:*
+## Checklist Arsitektur
+*Pastikan perubahan Anda mematuhi Modular Clean Architecture yang didefinisikan di `ARCHITECTURE.md` dan `.github/copilot-instructions.md`:*
 
-- [ ] **Layering**: Follows Controller → Service → Repository → Entity flow.
-- [ ] **Business Logic**: No business logic in Controllers or Repositories (placed in Services).
-- [ ] **Data Access**: No DB/ORM calls in Services (placed in Repositories).
-- [ ] **Module Communication**: Only imports from other modules' `index` files (Public API).
-- [ ] **Dependency Direction**: Dependencies flow inward (outer layers depend on inner).
-- [ ] **Entities**: Pure domain objects with no imports from ORM, framework, or HTTP layer.
-- [ ] **Error Handling**: Services throw typed domain errors; Controllers do not catch them.
-- [ ] **Import Paths**: All TypeScript imports use `.js` extensions (NodeNext ESM).
+- [ ] **Layering**: Mengikuti alur Controller → Service → Repository → Entity.
+- [ ] **Business Logic**: Tidak ada business logic di Controller atau Repository (diletakkan di Service).
+- [ ] **Data Access**: Tidak ada panggilan DB/ORM di Service (diletakkan di Repository).
+- [ ] **Module Communication**: Hanya melakukan import dari file `index` modul lain (Public API).
+- [ ] **Dependency Direction**: Arah dependensi mengalir ke dalam (outer layers depend on inner).
+- [ ] **Entities**: Objek domain murni tanpa import dari ORM, framework, atau HTTP layer.
+- [ ] **Error Handling**: Service melempar typed domain errors; Controller tidak menangkapnya.
+- [ ] **Import Paths**: Semua import TypeScript menggunakan ekstensi `.js` (NodeNext ESM).
 
 ## Quality Assurance
-- [ ] **Security**: Checked for SQL Injection, XSS, SSRF, and sensitive data exposure.
-- [ ] **Performance**: No N+1 queries or inefficient loops introduced.
-- [ ] **Maintainability**: Follows SOLID principles and naming consistency.
-- [ ] **Testing**: Unit/Integration tests added or updated.
+- [ ] **Keamanan**: Sudah diperiksa dari SQL Injection, XSS, SSRF, dan paparan data sensitif.
+- [ ] **Performa**: Tidak ada N+1 queries atau loop yang tidak efisien.
+- [ ] **Maintainability**: Mengikuti prinsip SOLID dan konsistensi penamaan.
+- [ ] **Testing**: Unit/Integration test telah ditambahkan atau diperbarui.
 
-## Screenshots / Logs
-<!-- Add screenshots or logs if applicable -->
+## Screenshot / Log
+<!-- Tambahkan screenshot atau log jika relevan -->
 
-## Related Issues
-<!-- e.g., Fixes #123 -->
+## Issue Terkait
+<!-- contoh: Fixes #123 -->
