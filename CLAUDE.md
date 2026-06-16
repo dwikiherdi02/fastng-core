@@ -11,6 +11,7 @@ FastNG is a Fastify + TypeScript REST API boilerplate built on Modular Clean Arc
 @.claude/rules/auth-and-jobs.md — JWT/auth, protected routes, RBAC, scheduled jobs  
 @.claude/rules/conventions.md — Tooling, naming, service composition, package manager  
 @.claude/rules/documentation.md — Tutorial authoring guidelines; mandatory for fundamental changes  
+@.claude/rules/versioning.md — Semantic versioning (MAJOR/MINOR/PATCH), changelog, commit format  
 
 ## Non-Negotiable Rules
 
@@ -28,9 +29,11 @@ FastNG is a Fastify + TypeScript REST API boilerplate built on Modular Clean Arc
 - **Service composition**: Service-in-service reuse only flows in the direction declared by `dependsOn[]`. Inject via constructor in `module.ts`, never `new ServiceX()` inside another service. Import only from the origin module's `index.ts`.
 - **Package manager**: Use `yarn`, not `npm`.
 
-**Documentation (Mandatory for Fundamental Changes):**
-- **Create/update tutorial on fundamental changes**: Any new feature, pattern, or architectural change that is fundamental (not a routine bug fix) **must** have a corresponding tutorial file in `tutorial/NN-*.md` (Indonesian) or update an existing one. See @.claude/rules/documentation.md for what counts as "fundamental" and the tutorial format.
-- **Tutorial is single source of truth**: The tutorial file is the definitive reference. Skills and rules files reference tutorials, not the reverse. Keep tutorials up-to-date.
+**Documentation & Versioning (Mandatory for All Changes):**
+- **Update VERSION.md with every commit**: Track changes in `VERSION.md` using semantic versioning (MAJOR.MINOR.PATCH). Fundamental changes must include new tutorial(s); version bump determines changelog entry. See `VERSION.md` for versioning rules and commit format.
+- **Create/update tutorial on fundamental changes**: Any new feature, pattern, or architectural change that is fundamental (not a routine bug fix) **must** have a corresponding tutorial file in `tutorial/NN-*.md` written in **Bahasa Indonesia**. See @.claude/rules/documentation.md for what counts as "fundamental", language requirement, and template format.
+- **Tutorial is single source of truth**: The tutorial file is the definitive reference. Skills and rules files reference tutorials, not the reverse. Keep tutorials up-to-date in Indonesian.
+- **Tutorial must accompany MAJOR/MINOR bumps**: No code commit for new patterns/features ships without tutorial. Tutorial MUST be done BEFORE commit.
 
 ## File Map
 
@@ -44,6 +47,8 @@ FastNG is a Fastify + TypeScript REST API boilerplate built on Modular Clean Arc
 
 **Config & DB**: `src/core/config/env.config.ts` (Zod env schema), `src/core/database/transaction.ts` (multi-repo transaction utility)
 
+**Versioning & Changelog**: `VERSION.md` (pure changelog tracking), `@.claude/rules/versioning.md` (semantic versioning rules and guidelines)
+
 ## Task-Specific Procedures
 
 For step-by-step walkthroughs of common tasks (add a new module, switch DB driver, add a scheduled job, etc.), consult the matching skill under `.claude/skills/`. Each skill points to the corresponding `tutorial/NN-*.md` file for full code samples and rationale.
@@ -56,4 +61,5 @@ For step-by-step walkthroughs of common tasks (add a new module, switch DB drive
 **Package manager**: yarn (not npm)  
 **Code style**: Prettier (`semi: false`, `singleQuote: true`, `trailingComma: 'es5'`, `printWidth: 100`, `tabWidth: 2`), ESLint flat config (typescript-eslint recommended, `no-console: off`)  
 **npm scripts**: `yarn dev` (watch mode), `yarn build`, `yarn start` (prod), `yarn lint`, `yarn format`, `yarn db:generate` / `db:migrate` / `db:push`, `yarn audit`  
+**Documentation language**: All tutorial files in `tutorial/` folder MUST be written in **Bahasa Indonesia** (code samples/paths/identifiers remain in English). This ensures team accessibility regardless of English proficiency.  
 **⚠️ No test framework installed yet**: vitest and supertest are listed in ARCHITECTURE.md as aspirational. Do not assume `yarn test`, `vitest`, or `supertest` commands exist in the current setup.

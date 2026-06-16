@@ -1,93 +1,58 @@
-# Version 1.0.0 (Initial Release)
+﻿# FastNG Changelog
 
-## Project Information
+**Current Version**: 1.0.0  
+**Last Updated**: 2026-06-16
 
-- **Project Name**: fastng-core
-- **Version**: 1.0.0
-- **License**: MIT
-- **Type**: ES Module
+For semantic versioning rules, guidelines, and commit format, see @.claude/rules/versioning.md.
 
-## Tech Stack
+---
 
-### Runtime & Language
-- **Node.js**: >= 20
-- **TypeScript**: 5 (strict mode, NodeNext ESM)
+## Unreleased Changes
 
-### HTTP Framework
-- **Fastify**: 5.8.5
+Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
 
-### Database
-- **ORM (Relational)**: Prisma 6.8.2 (SQLite, MySQL, PostgreSQL)
-- **ODM (MongoDB)**: Mongoose 9.6.3
+### Added
+- (none yet)
 
-### Validation & Security
-- **Validation**: Zod 3.24.4
-- **Authentication**: JWT (@fastify/jwt 10.1.0) + bcryptjs 3.0.3
+### Changed
+- (none yet)
 
-### API Documentation
-- **Swagger**: @fastify/swagger 9.5.0 + @fastify/swagger-ui 5.2.3
+### Fixed
+- (none yet)
 
-### Logging
-- **Pino**: built-in Fastify logger with pino-pretty
+### Deprecated
+- (none yet)
 
-### Scheduling
-- **Scheduler**: @fastify/schedule 6.0.0 + toad-scheduler 4.0.1
+### Removed
+- (none yet)
 
-### Development
-- **Build**: tsx 4.19.0 (zero-build dev server)
+### Security
+- (none yet)
 
-## Architecture
+---
 
-**Modular Clean Architecture** combining Domain-Driven Design (DDD) and Clean Architecture principles.
+## [1.0.0] — 2026-06-16
 
-### Key Features
-- Self-contained modules with layered structure (Controller → Service → Repository → Entity)
-- Multiple database driver support (can be switched via environment variable)
-- Centralized module registry with enable/disable capability
-- Topological sort for dependency resolution at load time
-- Loose coupling between modules via public API
-- **Periodic job scheduling** with @fastify/schedule (SimpleIntervalJob, CronJob)
+**Initial Release - Complete Fastify TypeScript REST API Boilerplate**
 
-## Core Components
-
-### Core Layer
-- **Config**: Environment configuration with Zod validation
-- **Database**: Multi-driver support (Prisma + Mongoose)
-- **Middlewares**: Global error handler
-- **Plugins**: CORS, Helmet, Rate Limit, Swagger, JWT, Database connection, **Schedule**
-- **Utils**: Custom error handling and response formatting
-
-### Modules
-- **Auth**: Authentication module (register, login, refresh token)
-- **Users**: User management module (CRUD, profile update)
-- **Welcome**: Basic health check endpoint
-
-## Development Scripts
-
-- `dev`: Run development server with auto-reload
-- `start`: Run production build
-- `build`: Compile TypeScript to JavaScript
-- `db:generate`: Generate Prisma client
-- `db:migrate`: Run Prisma migrations
-- `db:push`: Push schema to database
-- `lint`: ESLint for src/ directory
-- `format`: Prettier formatting for src/
-
-## API Endpoints
-
-- **Swagger UI**: `/docs`
-- **Health Check**: `/welcome`
-- **Auth**: `/auth/register`, `/auth/login`, `/auth/refresh-token`
-- **Users**: User management routes (protected)
-
-## New Features (v1.0.0)
-
-### Scheduled Jobs
-- Added `@fastify/schedule` plugin for periodic job scheduling
-- Support for `SimpleIntervalJob` (interval-based) and `CronJob` (cron expression-based)
-- Environment variable `SCHEDULER_ENABLED` to toggle scheduler
-- Tutorial guide: `tutorial/16-menambah-scheduled-job.md`
-
-## Status
-
-✅ Initial Release - Version 1.0.0
+### Added
+- CLAUDE.md with modular clean architecture rules
+- 7 rule files (.claude/rules/) covering: architecture, modules, database, errors/DTOs, auth/jobs, conventions, documentation
+- 12 skills (.claude/skills/) for common development tasks
+- Project settings (.claude/settings.json) with permission allowlist
+- Documentation guidance system (.claude/guidance/)
+- VERSION.md with semantic versioning and changelog tracking
+- Full TypeScript migration (from JavaScript)
+- Module registry system with topological sort loader
+- Dual database driver support (Prisma: sqlite/mysql/postgresql, Mongoose: mongodb)
+- Environment-based configuration with Zod validation
+- Comprehensive error handling with typed AppError subclasses
+- JWT authentication with dual-token system
+- Role-based authorization (RBAC) support
+- Request/response validation with paired Zod + JSON Schema
+- Scheduled jobs via @fastify/schedule + toad-scheduler
+- Multi-repository atomic transactions (Prisma-only)
+- Service-in-service composition pattern
+- Global error handler with centralized error mapping
+- Swagger/OpenAPI documentation auto-generation
+- 16 tutorial files in Bahasa Indonesia

@@ -295,8 +295,9 @@ After creating/updating the tutorial:
 
 ## Checklist
 
-- [ ] Bahasa Indonesia throughout (except code)
+- [ ] **Bahasa Indonesia throughout (except code/paths/identifiers)** — ALL tutorial files MUST be in Indonesian
 - [ ] File created at `tutorial/NN-topic.md` (or existing file updated)
+- [ ] File name is in Bahasa Indonesia (kebab-case)
 - [ ] All 8 sections filled: Tujuan, Kapan, Prasyarat, Pengenalan, Alur, Langkah, Contoh, Aturan, Verifikasi, Referensi, Catatan, Lihat Juga
 - [ ] Code samples tested (copy-paste and works, or clearly marked as illustrative)
 - [ ] Heading hierarchy correct (# NN-Title, ## Sections, ### Langkah)

@@ -24,24 +24,41 @@ A change is **fundamental** (requires a tutorial) if it introduces:
 - ❌ Performance optimization that doesn't change the public interface
 - ❌ Updating dependencies (unless the API changes significantly)
 
-## Tutorial File Naming
+## Tutorial File Naming & Language
 
-Tutorials live in `tutorial/` (root level), named by sequence and topic:
+Tutorials live in `tutorial/` folder (root level). **All tutorial files MUST be in Bahasa Indonesia.**
 
 ```
 tutorial/
-├── 01-menambah-modul-baru.md                      ← new feature/pattern
-├── 02-mengaktifkan-menonaktifkan-modul.md         ← existing pattern
-├── ...existing 16 files...
-├── 17-{next-topic-in-indonesian}.md               ← new fundamental change
-└── 18-{another-topic-in-indonesian}.md
+├── 01-menambah-modul-baru.md                      ← Bahasa Indonesia
+├── 02-mengaktifkan-menonaktifkan-modul.md         ← Bahasa Indonesia
+├── ...existing 16 files (all Indonesian)...
+├── 17-{next-topic-in-indonesian}.md               ← NEW, must be Indonesian
+└── 18-{another-topic-in-indonesian}.md            ← NEW, must be Indonesian
 ```
 
 **Naming convention:**
 - Prefix: `NN-` (two digits, sequential: 01, 02, ..., 99)
-- Title: Bahasa Indonesia (kebab-case), short and descriptive
+- Title: **Bahasa Indonesia** (kebab-case), short and descriptive
 - Format: `.md` (Markdown)
-- Example: `17-menambah-request-interceptor.md`, `18-custom-database-transaction-wrapper.md`
+- Language: **ENTIRE FILE MUST BE IN BAHASA INDONESIA** (except code samples, file paths, and code identifiers)
+- Example: `17-menambah-request-interceptor.md`, `18-wrapper-transaksi-database-custom.md`
+
+**Language Rule (MANDATORY):**
+```
+❌ WRONG: Tutorial written in English
+✅ CORRECT: Tutorial written in Bahasa Indonesia (except code/paths)
+
+All tutorial files in the tutorial/ folder MUST use Bahasa Indonesia for:
+- Section titles (Tujuan, Kapan, Prasyarat, Pengenalan, Alur, Langkah, Contoh, Aturan, Verifikasi, Referensi, Catatan, Lihat Juga)
+- Explanations and prose
+- Code comments (when adding tutorial-specific comments)
+- Examples and descriptions
+
+Code samples, file paths, function names, and class names remain in their original form (English).
+
+**Rationale**: Tutorials are the team's primary learning resource. Indonesian ensures accessibility to all team members regardless of English proficiency. This is a team decision, not a suggestion.
+```
 
 ## Tutorial Structure & Format
 
