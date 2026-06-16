@@ -1,0 +1,55 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(yarn add*)",
+      "Bash(yarn remove*)",
+      "Bash(git push*)",
+      "PowerShell(yarn add*)",
+      "PowerShell(yarn remove*)",
+      "PowerShell(git push*)"
+    ],
+    "allow": [
+      "Bash(yarn dev)",
+      "Bash(yarn build)",
+      "Bash(yarn start)",
+      "Bash(yarn lint)",
+      "Bash(yarn format)",
+      "Bash(yarn db:generate)",
+      "Bash(yarn db:push)",
+      "Bash(yarn db:migrate)",
+      "Bash(yarn install)",
+      "Bash(yarn audit)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git fetch)",
+      "PowerShell(yarn dev)",
+      "PowerShell(yarn build)",
+      "PowerShell(yarn start)",
+      "PowerShell(yarn lint)",
+      "PowerShell(yarn format)",
+      "PowerShell(yarn db:generate)",
+      "PowerShell(yarn db:push)",
+      "PowerShell(yarn db:migrate)",
+      "PowerShell(yarn install)",
+      "PowerShell(git status)",
+      "PowerShell(git diff*)",
+      "PowerShell(git log*)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout -- *)",
+      "Bash(npx prisma migrate reset*)",
+      "Bash(npx prisma db push --force-reset*)",
+      "Bash(yarn remove*)",
+      "PowerShell(rm -recurse*)",
+      "PowerShell(git push*)",
+      "PowerShell(git reset*)",
+      "PowerShell(Remove-Item -Recurse*)"
+    ]
+  }
+}
