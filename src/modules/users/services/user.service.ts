@@ -68,7 +68,7 @@ export class UserService {
     await withTransaction(this.db, async (tx) => {
       const userRepo = this.userRepository.withClient(tx)
       const authRepo = this.authRepository.withClient(tx)
-      await authRepo.deleteAllRefreshTokensForUser(targetId)
+      await authRepo.revokeAllUserSessions(targetId)
       await userRepo.delete(targetId)
     })
   }

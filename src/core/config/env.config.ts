@@ -4,7 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().default(3000),
-  DB_DRIVER: z.enum(['sqlite', 'mysql', 'postgresql', 'mongodb']).default('sqlite'),
+  DB_DRIVER: z.enum(['sqlite', 'mysql', 'postgresql', 'sqlserver', 'mongodb']).default('sqlite'),
   DATABASE_URL: z.string().optional(),
   MONGODB_URI: z.string().optional(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
@@ -14,7 +14,13 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
   CORS_ORIGIN: z.string().default('*'),
   SCHEDULER_ENABLED: z.boolean().default(true),
+  SEED_ADMIN_EMAIL: z.string().email().default('admin@fastng.local'),
+  SEED_ADMIN_USERNAME: z.string().default('admin'),
+  SEED_ADMIN_PASSWORD: z.string().default('password'),
 })
+
+// Drivers backed by Prisma (require a DATABASE_URL). MongoDB uses MONGODB_URI instead.
+export const PRISMA_DRIVERS = ['sqlite', 'mysql', 'postgresql', 'sqlserver'] as const
 
 export type Env = z.infer<typeof envSchema>
 
@@ -30,7 +36,7 @@ if (!parsed.success) {
 
 const env = parsed.data
 
-if (['sqlite', 'mysql', 'postgresql'].includes(env.DB_DRIVER) && !env.DATABASE_URL) {
+if ((PRISMA_DRIVERS as readonly string[]).includes(env.DB_DRIVER) && !env.DATABASE_URL) {
   console.error(`❌  DATABASE_URL is required when DB_DRIVER=${env.DB_DRIVER}`)
   process.exit(1)
 }

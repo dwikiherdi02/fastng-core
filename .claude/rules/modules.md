@@ -1,5 +1,11 @@
 # Modules: Structure, Registry, and Lifecycle
 
+> **v2.0.0 additions** (see `tutorial/18`, `tutorial/19`): a module may now also own —
+> - `src/modules/{name}/{name}.manifest.ts` — `manifest: ModuleManifest` declaring sidebar `menu` metadata (or `menu: false` for service/helper modules) and supported `permissions[]`. Synced to the DB catalog bidirectionally by `yarn db:sync` (enabled ⇒ upsert, disabled ⇒ delete).
+> - `src/modules/{name}/db/{name}.prisma` — the module's Prisma schema fragment (only `model` blocks; self-contained, no cross-module `@relation`). Assembled into `prisma/schema.prisma` (auto-generated) for enabled modules only. Disabling a module drops its tables on the next `yarn db:sync`.
+>
+> Dependency validation (`dependsOn` targets must be enabled) now runs both at boot and in the migration CLI via `src/registry/dependency-validator.ts`.
+
 ## Module Folder Skeleton
 
 Every module lives under `src/modules/{name}/` and must follow this exact structure:

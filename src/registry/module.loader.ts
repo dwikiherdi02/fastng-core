@@ -1,17 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import modules, { type ModuleConfig } from './module.registry.js'
+import { validateDependencies } from './dependency-validator.js'
 
 function resolveModules(): ModuleConfig[] {
-  const enabled = modules.filter((m) => m.enabled)
-  const enabledNames = new Set(enabled.map((m) => m.name))
+  validateDependencies(modules)
 
-  for (const mod of enabled) {
-    for (const dep of mod.dependsOn) {
-      if (!enabledNames.has(dep)) {
-        throw new Error(`Module "${mod.name}" depends on "${dep}", but it is not enabled.`)
-      }
-    }
-  }
+  const enabled = modules.filter((m) => m.enabled)
 
   // Kahn's topological sort
   const inDegree = new Map<string, number>()

@@ -1,5 +1,11 @@
 # Database: Drivers, Repository Pattern, and Transactions
 
+> **v2.0.0 updates** (see `tutorial/18`, `tutorial/21`):
+> - **Fifth driver**: `sqlserver` (SQL Server 2017+) joins `sqlite`/`mysql`/`postgresql`/`mongodb`. `DB_DRIVER` enum in `env.config.ts` includes it; base block at `prisma/base/sqlserver.prisma`.
+> - **Per-module schema**: each module owns `src/modules/{name}/db/{name}.prisma` (only `model` blocks). `src/core/database/schema-builder.ts` assembles `prisma/schema.prisma` from `prisma/base/{driver}.prisma` + enabled modules' fragments. **`prisma/schema.prisma` is auto-generated — do not edit by hand.** Fragments must be self-contained (no cross-module `@relation`; use scalar FK columns). The old `schema.mysql.prisma`/`schema.postgresql.prisma` copies are gone.
+> - **Migration workflow**: `yarn db:sync` (validate deps → assemble → `prisma db push --accept-data-loss` → sync menu/permission catalog) and `yarn db:seed` (default roles + admin user). Disabling a module drops its tables and removes its catalog rows (bidirectional). For mongodb, `db:sync` runs catalog sync only.
+> - **Auth schema**: `RefreshToken` replaced by `sessions` (SHA-256-hashed opaque tokens); added RBAC tables (`roles`, `user_roles`, `menus`, `permissions`, `menu_permissions`, `role_menu_permissions`). Catalog sync lives in `src/core/database/sync/`; RBAC reads in `src/core/rbac/rbac.reader.ts`.
+
 ## Dual-Driver Model
 
 FastNG supports four databases via the `DB_DRIVER` environment variable:

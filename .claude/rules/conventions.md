@@ -1,5 +1,7 @@
 # Conventions: Tooling, Naming, and Service Composition
 
+> **v2.0.0 additions**: new scripts `yarn db:sync` (assemble per-module schema from enabled modules → `prisma db push` → sync menu/permission catalog) and `yarn db:seed` (default roles + admin user, from `SEED_ADMIN_*` env). CLI entry points live in `scripts/db-sync.ts` and `scripts/db-seed.ts` (run via `tsx`, outside `src/` so `tsc` build ignores them). `DB_DRIVER` now also accepts `sqlserver`. New file conventions: `{name}.manifest.ts` (module menu/permission manifest) and `db/{name}.prisma` (module schema fragment). See `tutorial/18`–`tutorial/21`.
+
 ## Technology Stack & Tooling
 
 | Component | Version/Detail |

@@ -12,7 +12,8 @@ export interface AuthResponse {
     id: string
     username: string
     email: string
-    role: string
+    roles: string[]
+    isActive: boolean
     createdAt: Date
   }
 }
@@ -25,7 +26,8 @@ export function toAuthResponse(entity: AuthEntity, tokens: Tokens): AuthResponse
       id: entity.id,
       username: entity.username,
       email: entity.email,
-      role: entity.role,
+      roles: entity.roles,
+      isActive: entity.isActive,
       createdAt: entity.createdAt,
     },
   }

@@ -10,7 +10,7 @@ const profileSchema = {
 
 const listUsersSchema = {
   tags: ['Users'],
-  summary: 'List all users (admin)',
+  summary: 'List all users (requires user_management:read)',
   security: [{ BearerAuth: [] }],
   querystring: {
     type: 'object',
@@ -23,14 +23,14 @@ const listUsersSchema = {
 
 const getUserSchema = {
   tags: ['Users'],
-  summary: 'Get user by ID (admin)',
+  summary: 'Get user by ID (requires user_management:read)',
   security: [{ BearerAuth: [] }],
   params: { type: 'object', properties: { id: { type: 'string' } } },
 }
 
 const deleteUserSchema = {
   tags: ['Users'],
-  summary: 'Delete user by ID (admin)',
+  summary: 'Delete user by ID (requires user_management:delete)',
   security: [{ BearerAuth: [] }],
   params: { type: 'object', properties: { id: { type: 'string' } } },
 }
@@ -40,20 +40,22 @@ export default async function userRoutes(
   controller: UserController
 ): Promise<void> {
   const auth = { preHandler: [fastify.authenticate] }
+  const canRead = { preHandler: [fastify.authenticate, fastify.authorize('user_management', 'read')] }
+  const canDelete = {
+    preHandler: [fastify.authenticate, fastify.authorize('user_management', 'delete')],
+  }
 
-  fastify.get('/me', { schema: profileSchema, ...auth }, (req, rep) =>
-    controller.getMe(req, rep)
-  )
+  fastify.get('/me', { schema: profileSchema, ...auth }, (req, rep) => controller.getMe(req, rep))
   fastify.patch('/me', { schema: updateProfileRouteSchema, ...auth }, (req, rep) =>
     controller.updateMe(req, rep)
   )
-  fastify.get('/', { schema: listUsersSchema, ...auth }, (req, rep) =>
+  fastify.get('/', { schema: listUsersSchema, ...canRead }, (req, rep) =>
     controller.listUsers(req, rep)
   )
-  fastify.get('/:id', { schema: getUserSchema, ...auth }, (req, rep) =>
+  fastify.get('/:id', { schema: getUserSchema, ...canRead }, (req, rep) =>
     controller.getUserById(req, rep)
   )
-  fastify.delete('/:id', { schema: deleteUserSchema, ...auth }, (req, rep) =>
+  fastify.delete('/:id', { schema: deleteUserSchema, ...canDelete }, (req, rep) =>
     controller.deleteUser(req, rep)
   )
 }

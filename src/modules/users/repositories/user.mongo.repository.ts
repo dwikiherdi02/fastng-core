@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose'
 import type { TransactionClient } from '../../../core/database/transaction.js'
 import { UserModel } from '../../../core/database/models/user.model.js'
+import { RoleModel } from '../../../core/database/models/role.model.js'
 import { UserEntity } from '../entities/user.entity.js'
 import type { IUserRepository } from './user.repository.js'
 
@@ -8,17 +9,27 @@ interface LeanUserDoc {
   _id: Types.ObjectId
   username: string
   email: string
-  role: string
+  isActive: boolean
+  roleIds: Types.ObjectId[]
   createdAt: Date
   updatedAt: Date
 }
 
-function toEntity(doc: LeanUserDoc): UserEntity {
+async function resolveRoleCodes(roleIds: Types.ObjectId[]): Promise<string[]> {
+  if (!roleIds?.length) return []
+  const roles = await RoleModel.find({ _id: { $in: roleIds } })
+    .select('code')
+    .lean()
+  return roles.map((r) => r.code)
+}
+
+async function toEntity(doc: LeanUserDoc): Promise<UserEntity> {
   return new UserEntity({
     id: doc._id.toString(),
     username: doc.username,
     email: doc.email,
-    role: doc.role,
+    roles: await resolveRoleCodes(doc.roleIds),
+    isActive: doc.isActive,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   })
@@ -39,13 +50,12 @@ export class UserMongoRepository implements IUserRepository {
       UserModel.find().skip(skip).limit(limit).sort({ createdAt: -1 }).lean<LeanUserDoc[]>(),
       UserModel.countDocuments(),
     ])
-    return { items: docs.map(toEntity), total }
+    const items = await Promise.all(docs.map(toEntity))
+    return { items, total }
   }
 
   async update(id: string, data: { username?: string; email?: string }): Promise<UserEntity> {
-    const doc = await UserModel.findByIdAndUpdate(id, data, {
-      new: true,
-    }).lean<LeanUserDoc>()
+    const doc = await UserModel.findByIdAndUpdate(id, data, { new: true }).lean<LeanUserDoc>()
     if (!doc) throw new Error(`User ${id} not found`)
     return toEntity(doc)
   }

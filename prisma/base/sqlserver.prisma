@@ -1,0 +1,18 @@
+// Base block for DB_DRIVER=sqlserver (SQL Server 2017+). Contains only generator + datasource.
+// Module table definitions are appended from each enabled module's db/*.prisma fragment.
+//
+// Example DATABASE_URL:
+//   sqlserver://localhost:1433;database=fastng;user=sa;password=Your_password123;encrypt=true;trustServerCertificate=true
+//
+// Note: SQL Server enforces a 900-byte limit on indexed columns. Prisma maps `String`
+// to NVarChar(1000) by default, so very long @unique/@@index string columns may need an
+// explicit @db.NVarChar(n) in the fragment when targeting SQL Server in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}

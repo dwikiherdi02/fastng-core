@@ -1,15 +1,23 @@
 import bcrypt from 'bcryptjs'
 import { ConflictError, UnauthorizedError, NotFoundError } from '../../../core/utils/errors.js'
 import env from '../../../core/config/env.config.js'
+import { generateRefreshToken, hashToken, generateJti } from '../../../core/utils/token.js'
+import { createRbacReader, type MenuNode } from '../../../core/rbac/rbac.reader.js'
 import type { FastifyInstance } from 'fastify'
 import type { AuthEntity } from '../entities/auth.entity.js'
-import type { IAuthRepository } from '../repositories/auth.repository.js'
+import type { IAuthRepository, SessionInfo } from '../repositories/auth.repository.js'
 
 const SALT_ROUNDS = 12
 
 interface Tokens {
   accessToken: string
   refreshToken: string
+}
+
+/** Where the login/refresh came from — recorded on the session for device management. */
+export interface RequestContext {
+  deviceInfo?: string
+  ipAddress?: string
 }
 
 function msFromExpiry(expiry: string): number {
@@ -28,11 +36,10 @@ export class AuthService {
     this.fastify = fastify
   }
 
-  async register(data: {
-    username: string
-    email: string
-    password: string
-  }): Promise<{ entity: AuthEntity; tokens: Tokens }> {
+  async register(
+    data: { username: string; email: string; password: string },
+    ctx: RequestContext = {}
+  ): Promise<{ entity: AuthEntity; tokens: Tokens }> {
     const existing = await this.repository.findByEmail(data.email)
     if (existing) throw new ConflictError('Email is already registered')
     const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS)
@@ -41,57 +48,102 @@ export class AuthService {
       email: data.email,
       passwordHash,
     })
-    const tokens = await this.issueTokens(entity)
+    const tokens = await this.startSession(entity, ctx)
     return { entity, tokens }
   }
 
-  async login(data: {
-    email: string
-    password: string
-  }): Promise<{ entity: AuthEntity; tokens: Tokens }> {
+  async login(
+    data: { email: string; password: string },
+    ctx: RequestContext = {}
+  ): Promise<{ entity: AuthEntity; tokens: Tokens }> {
     const result = await this.repository.findByEmail(data.email)
     if (!result) throw new UnauthorizedError('Invalid email or password')
     const valid = await bcrypt.compare(data.password, result.passwordHash)
     if (!valid) throw new UnauthorizedError('Invalid email or password')
-    const tokens = await this.issueTokens(result.entity)
+    if (!result.entity.isActive) throw new UnauthorizedError('Account is inactive')
+    const tokens = await this.startSession(result.entity, ctx)
     return { entity: result.entity, tokens }
   }
 
   async refreshToken(
     refreshTokenValue: string
   ): Promise<{ entity: AuthEntity; tokens: Tokens }> {
-    const stored = await this.repository.findRefreshToken(refreshTokenValue)
-    if (!stored) throw new UnauthorizedError('Invalid refresh token')
-    if (new Date(stored.expiresAt) < new Date()) {
-      await this.repository.deleteRefreshToken(refreshTokenValue)
+    const hash = hashToken(refreshTokenValue)
+    const session = await this.repository.findSessionByHash(hash)
+    // Unknown hash: either never issued, or an already-rotated token being replayed.
+    if (!session) throw new UnauthorizedError('Invalid refresh token')
+    if (session.isRevoked) throw new UnauthorizedError('Session has been revoked')
+    if (new Date(session.expiresAt) < new Date()) {
+      await this.repository.deleteSessionByHash(hash)
       throw new UnauthorizedError('Refresh token expired')
     }
-    const userId =
-      typeof stored.userId === 'string' ? stored.userId : stored.userId.toString()
-    const entity = await this.repository.findById(userId)
+
+    const entity = await this.repository.findById(session.userId)
     if (!entity) throw new NotFoundError('User not found')
-    await this.repository.deleteRefreshToken(refreshTokenValue)
-    const tokens = await this.issueTokens(entity)
-    return { entity, tokens }
+    if (!entity.isActive) throw new UnauthorizedError('Account is inactive')
+
+    // Rotate: replace the refresh token + jti on the same session row.
+    const jti = generateJti()
+    const newRefresh = generateRefreshToken()
+    const expiresAt = new Date(Date.now() + msFromExpiry(env.JWT_REFRESH_EXPIRES))
+    await this.repository.rotateSession(session.id, {
+      refreshTokenHash: hashToken(newRefresh),
+      accessTokenJti: jti,
+      expiresAt,
+    })
+    const accessToken = this.signAccessToken(entity, session.id, jti)
+    return { entity, tokens: { accessToken, refreshToken: newRefresh } }
   }
 
   async logout(refreshTokenValue: string): Promise<void> {
-    await this.repository.deleteRefreshToken(refreshTokenValue)
+    await this.repository.deleteSessionByHash(hashToken(refreshTokenValue))
   }
 
+  /** Force-logout a specific device/session owned by the user. */
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const revoked = await this.repository.revokeUserSession(userId, sessionId)
+    if (!revoked) throw new NotFoundError('Session not found')
+  }
+
+  /** Revoke all of a user's sessions (e.g. on email change / account deletion). */
   async revokeAllTokens(userId: string): Promise<void> {
-    await this.repository.deleteAllRefreshTokensForUser(userId)
+    await this.repository.revokeAllUserSessions(userId)
   }
 
-  private async issueTokens(entity: AuthEntity): Promise<Tokens> {
-    const payload = { sub: entity.id, username: entity.username, role: entity.role }
-    const accessToken = this.fastify.jwt.sign(payload, { expiresIn: env.JWT_ACCESS_EXPIRES })
-    const refreshToken = this.fastify.jwt.sign(
-      { sub: entity.id, type: 'refresh' },
-      { expiresIn: env.JWT_REFRESH_EXPIRES }
-    )
+  async listSessions(userId: string): Promise<SessionInfo[]> {
+    return this.repository.listUserSessions(userId)
+  }
+
+  /** Sidebar menu tree the given roles can access. */
+  async getMenus(roleCodes: string[]): Promise<MenuNode[]> {
+    const reader = createRbacReader(this.fastify.db)
+    return reader.getAccessibleMenus(roleCodes)
+  }
+
+  private async startSession(entity: AuthEntity, ctx: RequestContext): Promise<Tokens> {
+    const jti = generateJti()
+    const refreshToken = generateRefreshToken()
     const expiresAt = new Date(Date.now() + msFromExpiry(env.JWT_REFRESH_EXPIRES))
-    await this.repository.saveRefreshToken({ token: refreshToken, userId: entity.id, expiresAt })
+    const session = await this.repository.createSession({
+      userId: entity.id,
+      refreshTokenHash: hashToken(refreshToken),
+      accessTokenJti: jti,
+      expiresAt,
+      deviceInfo: ctx.deviceInfo,
+      ipAddress: ctx.ipAddress,
+    })
+    const accessToken = this.signAccessToken(entity, session.id, jti)
     return { accessToken, refreshToken }
+  }
+
+  private signAccessToken(entity: AuthEntity, sid: string, jti: string): string {
+    const payload = {
+      sub: entity.id,
+      sid,
+      jti,
+      username: entity.username,
+      roles: entity.roles,
+    }
+    return this.fastify.jwt.sign(payload, { expiresIn: env.JWT_ACCESS_EXPIRES })
   }
 }

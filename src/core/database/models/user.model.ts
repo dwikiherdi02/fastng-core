@@ -1,10 +1,11 @@
-import mongoose, { type Document, type Model } from 'mongoose'
+import mongoose, { type Document, type Model, type Types } from 'mongoose'
 
 export interface IUserDocument extends Document {
   username: string
   email: string
   password: string
-  role: 'user' | 'admin'
+  isActive: boolean
+  roleIds: Types.ObjectId[]
   createdAt: Date
   updatedAt: Date
 }
@@ -14,7 +15,8 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     username: { type: String, required: true, unique: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    isActive: { type: Boolean, default: true },
+    roleIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role' }],
   },
   {
     timestamps: true,

@@ -11,6 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:sync": "node --env-file=.env --import tsx/esm scripts/db-sync.ts",
+    "db:seed": "node --env-file=.env --import tsx/esm scripts/db-seed.ts",
     "lint": "eslint src/",
     "format": "prettier --write src/",
     "audit": "yarn audit --level high"

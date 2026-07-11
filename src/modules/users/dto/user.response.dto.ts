@@ -4,7 +4,8 @@ export interface UserResponse {
   id: string
   username: string
   email: string
-  role: string
+  roles: string[]
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -14,7 +15,8 @@ export function toUserResponse(entity: UserEntity): UserResponse {
     id: entity.id,
     username: entity.username,
     email: entity.email,
-    role: entity.role,
+    roles: entity.roles,
+    isActive: entity.isActive,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
   }
