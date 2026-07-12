@@ -12,7 +12,7 @@ For semantic versioning rules, guidelines, and commit format, see @.claude/rules
 Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
 
 ### Added
-- (none yet)
+- Configurable API docs: `DOC_PROVIDER` env var (`swagger` default | `scalar`) selects the docs UI renderer, and `DOC_PATH` (default `/docs`, must start with `/`) customizes the path (tutorial: tutorial/24-integrasi-docs-scalar.md)
 
 ### Changed
 - (none yet)
