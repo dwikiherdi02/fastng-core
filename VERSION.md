@@ -1,7 +1,7 @@
 ﻿# FastNG Changelog
 
-**Current Version**: 2.0.0  
-**Last Updated**: 2026-07-11
+**Current Version**: 3.0.0  
+**Last Updated**: 2026-07-12
 
 For semantic versioning rules, guidelines, and commit format, see @.claude/rules/versioning.md.
 
@@ -10,6 +10,54 @@ For semantic versioning rules, guidelines, and commit format, see @.claude/rules
 ## Unreleased Changes
 
 Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
+
+### Added
+- (none yet)
+
+### Changed
+- (none yet)
+
+### Fixed
+- (none yet)
+
+### Removed
+- (none yet)
+
+### Security
+- (none yet)
+
+---
+
+## [3.0.0] — 2026-07-12
+
+**RBAC module split + snake_case schema + user-level permissions + Scalar docs**
+
+> ⚠️ **Breaking release.** Table/column names changed to snake_case, the RBAC tables moved into new modules, the manifest `permissions` shape changed, and a user-level override table was added. Run `yarn db:sync` then `yarn db:seed`.
+
+### Added
+- New modules `permission`, `menu`, `role`, `session` — each owns its own `db/*.prisma` fragment (moved out of `auth`). `dependsOn` graph: `permission → menu → role`, `session` standalone, `auth → role/menu/session`, `users → auth/role` (tutorial: tutorial/22-pemecahan-modul-rbac.md)
+- User-level permission overrides (`user_menu_permissions`, effect `allow`/`deny`) — admin can grant/revoke per user on top of role grants; effective = user override wins, else role grant (tutorial: tutorial/23-hak-akses-per-user-dan-cascade-can-access.md)
+- `can_access` master gate — a denied `can_access` fails every other permission on that menu; enforced in route middleware only (`fastify.requireMenuAccess(menu)` + folded into `fastify.authorize`) (tutorial: tutorial/23-*.md)
+- Admin checklist APIs: `role` module `GET/POST/PUT/DELETE /api/v1/roles` + `PUT /roles/:id/permissions`; `users` module `PUT /users/:id/roles` and `GET|PUT /users/:id/permissions`; catalog reads `GET /api/v1/permissions` and `GET /api/v1/menus`
+- Manifest permissions now carry a `description` (and optional `route` binding), surfaced in the admin checklist + API docs
+- Scalar API reference at `/docs` via `@scalar/fastify-api-reference` (tutorial: tutorial/24-integrasi-docs-scalar.md)
+
+### Changed
+- **snake_case** database naming: Prisma models keep PascalCase but map to snake_case tables/columns via `@@map`/`@map`; Mongoose collections + fields are snake_case (Prisma client access is unchanged)
+- Sessions moved from the auth repository into the dedicated `session` module (`ISessionRepository`); `AuthService` receives it via constructor
+- `rbac.reader` resolves permissions via scalar step-wise joins (cross-module `@relation` removed); `hasPermission`/`getAccessibleMenus` now take `userId` for override resolution
+- Manifest `permissions: string[]` → `permissions: PermissionManifest[]` (`{ code, name?, description, route? }`)
+- API docs served by Scalar instead of `@fastify/swagger-ui`
+
+### Removed
+- Cross-module Prisma relations for the RBAC tables (now self-contained fragments with scalar FKs; cascades handled in the service layer)
+
+### Security
+- User-level DENY overrides let an admin instantly revoke a specific permission from one user regardless of their roles
+
+**Migration notes:** `yarn db:sync` (snake_case tables are recreated) then `yarn db:seed`. `@fastify/swagger-ui` is no longer used — you may `yarn remove @fastify/swagger-ui`. Update any custom modules' manifests to the object `permissions` shape.
+
+---
 
 ### Added
 - (none yet)

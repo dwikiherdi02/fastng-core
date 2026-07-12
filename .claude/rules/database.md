@@ -1,5 +1,7 @@
 # Database: Drivers, Repository Pattern, and Transactions
 
+> **v3.0.0 updates** (see `tutorial/22`): DB naming is **snake_case** — Prisma models keep PascalCase but map via `@@map`/`@map` (client access unchanged); Mongoose collections + fields are snake_case. RBAC tables are split into per-module fragments: `permission` (`permissions`), `menu` (`menus`, `menu_permissions`), `role` (`roles`, `role_menu_permissions`), `session` (`sessions`), `auth` (`users`, `user_roles`, `user_menu_permissions`). Cross-module FKs are **scalar columns (no `@relation`)** — reader/repos do step-wise joins, and cross-module cascades run in the service layer via `withTransaction`.
+
 > **v2.0.0 updates** (see `tutorial/18`, `tutorial/21`):
 > - **Fifth driver**: `sqlserver` (SQL Server 2017+) joins `sqlite`/`mysql`/`postgresql`/`mongodb`. `DB_DRIVER` enum in `env.config.ts` includes it; base block at `prisma/base/sqlserver.prisma`.
 > - **Per-module schema**: each module owns `src/modules/{name}/db/{name}.prisma` (only `model` blocks). `src/core/database/schema-builder.ts` assembles `prisma/schema.prisma` from `prisma/base/{driver}.prisma` + enabled modules' fragments. **`prisma/schema.prisma` is auto-generated — do not edit by hand.** Fragments must be self-contained (no cross-module `@relation`; use scalar FK columns). The old `schema.mysql.prisma`/`schema.postgresql.prisma` copies are gone.

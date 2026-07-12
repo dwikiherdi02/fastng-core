@@ -10,22 +10,21 @@ import {
 export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async upsertPermission(code: string, name: string): Promise<void> {
+  async upsertPermission(code: string, name: string, description: string | null): Promise<void> {
     await this.prisma.permission.upsert({
       where: { code },
-      create: { code, name },
-      update: { name },
+      create: { code, name, description },
+      update: { name, description },
     })
   }
 
   async upsertMenu(menu: MenuInput): Promise<void> {
-    // Ensure every supported permission exists in the global catalog first.
-    for (const code of menu.permissions) {
-      await this.upsertPermission(code, humanizePermission(code))
+    for (const perm of menu.permissions) {
+      await this.upsertPermission(perm.code, perm.name ?? humanizePermission(perm.code), perm.description)
     }
 
     const parentId = menu.parentCode
-      ? (await this.prisma.menu.findUnique({ where: { code: menu.parentCode } }))?.id ?? null
+      ? ((await this.prisma.menu.findUnique({ where: { code: menu.parentCode } }))?.id ?? null)
       : null
 
     const record = await this.prisma.menu.upsert({
@@ -49,17 +48,16 @@ export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
       },
     })
 
-    // Reconcile menu_permissions: add missing links, drop links no longer declared.
+    // Reconcile menu_permissions (scalar permission_id): add missing, drop removed.
     const permissions = await this.prisma.permission.findMany({
-      where: { code: { in: menu.permissions } },
+      where: { code: { in: menu.permissions.map((p) => p.code) } },
     })
     const wantedPermissionIds = new Set(permissions.map((p) => p.id))
-
     const existing = await this.prisma.menuPermission.findMany({ where: { menuId: record.id } })
-    const existingByPermId = new Map(existing.map((mp) => [mp.permissionId, mp]))
+    const existingPermIds = new Set(existing.map((mp) => mp.permissionId))
 
     for (const permId of wantedPermissionIds) {
-      if (!existingByPermId.has(permId)) {
+      if (!existingPermIds.has(permId)) {
         await this.prisma.menuPermission.create({
           data: { menuId: record.id, permissionId: permId },
         })
@@ -67,27 +65,42 @@ export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
     }
     for (const mp of existing) {
       if (!wantedPermissionIds.has(mp.permissionId)) {
-        // Cascades to role_menu_permissions.
-        await this.prisma.menuPermission.delete({ where: { id: mp.id } })
+        await this.deleteMenuPermission(mp.id)
       }
     }
+  }
+
+  /** Delete a menu_permission and the cross-module grants referencing it (scalar FKs). */
+  private async deleteMenuPermission(menuPermissionId: string): Promise<void> {
+    await this.prisma.roleMenuPermission.deleteMany({ where: { menuPermissionId } })
+    await this.prisma.userMenuPermission.deleteMany({ where: { menuPermissionId } })
+    await this.prisma.menuPermission.delete({ where: { id: menuPermissionId } })
   }
 
   async removeMenu(code: string): Promise<void> {
     const menu = await this.prisma.menu.findUnique({ where: { code } })
     if (!menu) return
-    // onDelete: Cascade removes menu_permissions → role_menu_permissions.
+    const menuPermissions = await this.prisma.menuPermission.findMany({ where: { menuId: menu.id } })
+    for (const mp of menuPermissions) await this.deleteMenuPermission(mp.id)
     await this.prisma.menu.delete({ where: { id: menu.id } })
   }
 
   async listMenusWithPermissions(): Promise<MenuWithPermissions[]> {
-    const menus = await this.prisma.menu.findMany({
-      include: { menuPermissions: { include: { permission: true } } },
-    })
-    return menus.map((m) => ({
-      code: m.code,
-      permissions: m.menuPermissions.map((mp) => mp.permission.code),
-    }))
+    const [menus, menuPermissions, permissions] = await Promise.all([
+      this.prisma.menu.findMany(),
+      this.prisma.menuPermission.findMany(),
+      this.prisma.permission.findMany(),
+    ])
+    const permCodeById = new Map(permissions.map((p) => [p.id, p.code]))
+    const codesByMenuId = new Map<string, string[]>()
+    for (const mp of menuPermissions) {
+      const permCode = permCodeById.get(mp.permissionId)
+      if (!permCode) continue
+      const list = codesByMenuId.get(mp.menuId) ?? []
+      list.push(permCode)
+      codesByMenuId.set(mp.menuId, list)
+    }
+    return menus.map((m) => ({ code: m.code, permissions: codesByMenuId.get(m.id) ?? [] }))
   }
 
   async upsertRole(code: string, name: string, description?: string): Promise<void> {
@@ -98,25 +111,32 @@ export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
     })
   }
 
-  async setRoleGrants(roleCode: string, grants: RoleGrant[]): Promise<void> {
-    const role = await this.prisma.role.findUnique({ where: { code: roleCode } })
-    if (!role) throw new Error(`Cannot set grants: role "${roleCode}" not found.`)
-
-    // Resolve every (menuCode, permissionCode) grant to a menu_permission id.
-    const wantedMenuPermissionIds = new Set<string>()
+  private async resolveMenuPermissionIds(grants: RoleGrant[]): Promise<Set<string>> {
+    const ids = new Set<string>()
     for (const grant of grants) {
       const menu = await this.prisma.menu.findUnique({ where: { code: grant.menuCode } })
       if (!menu) continue
-      const menuPermissions = await this.prisma.menuPermission.findMany({
-        where: { menuId: menu.id, permission: { code: { in: grant.permissions } } },
+      const permissions = await this.prisma.permission.findMany({
+        where: { code: { in: grant.permissions } },
       })
-      for (const mp of menuPermissions) wantedMenuPermissionIds.add(mp.id)
+      for (const perm of permissions) {
+        const mp = await this.prisma.menuPermission.findUnique({
+          where: { menuId_permissionId: { menuId: menu.id, permissionId: perm.id } },
+        })
+        if (mp) ids.add(mp.id)
+      }
     }
+    return ids
+  }
 
+  async setRoleGrants(roleCode: string, grants: RoleGrant[]): Promise<void> {
+    const role = await this.prisma.role.findUnique({ where: { code: roleCode } })
+    if (!role) throw new Error(`Cannot set grants: role "${roleCode}" not found.`)
+    const wanted = await this.resolveMenuPermissionIds(grants)
     const existing = await this.prisma.roleMenuPermission.findMany({ where: { roleId: role.id } })
     const existingIds = new Set(existing.map((r) => r.menuPermissionId))
 
-    for (const mpId of wantedMenuPermissionIds) {
+    for (const mpId of wanted) {
       if (!existingIds.has(mpId)) {
         await this.prisma.roleMenuPermission.create({
           data: { roleId: role.id, menuPermissionId: mpId },
@@ -124,7 +144,7 @@ export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
       }
     }
     for (const rmp of existing) {
-      if (!wantedMenuPermissionIds.has(rmp.menuPermissionId)) {
+      if (!wanted.has(rmp.menuPermissionId)) {
         await this.prisma.roleMenuPermission.delete({ where: { id: rmp.id } })
       }
     }
@@ -139,7 +159,6 @@ export class CatalogSyncPrismaRepository implements ICatalogSyncRepository {
       create: { username: data.username, email: data.email, password: data.passwordHash },
       update: { username: data.username },
     })
-
     const roles = await this.prisma.role.findMany({ where: { code: { in: roleCodes } } })
     await this.prisma.userRole.deleteMany({ where: { userId: user.id } })
     for (const role of roles) {

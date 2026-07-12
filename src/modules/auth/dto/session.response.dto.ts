@@ -1,4 +1,4 @@
-import type { SessionInfo } from '../repositories/auth.repository.js'
+import type { SessionInfo } from '../../session/index.js'
 
 export interface SessionResponse {
   id: string

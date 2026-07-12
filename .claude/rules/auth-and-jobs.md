@@ -1,5 +1,7 @@
 # Authentication, Authorization, and Scheduled Jobs
 
+> **v3.0.0 updates** (see `tutorial/22`, `tutorial/23`): RBAC tables split into `permission`/`menu`/`role`/`session` modules; `auth` owns `users`/`user_roles`/`user_menu_permissions`. **Per-user overrides**: `user_menu_permissions.effect` (`allow`/`deny`) wins over role grants. **`can_access` cascade**: any non-`can_access` check first requires effective `can_access` on the same menu. New guard `fastify.requireMenuAccess('menu')`; `fastify.authorize`/reader now take `userId` (`request.user.sub`). Sessions moved to the `session` module (`ISessionRepository`, injected into `AuthService`). Enforcement is route-middleware only — internal service-to-service calls bypass it.
+
 > **v2.0.0 updates** (see `tutorial/17`, `tutorial/20`):
 > - **Access-token payload** is now `{ sub, sid, jti, username, roles }` — `roles` is a **string array**; `request.user.role` (singular) no longer exists. Typed in `src/types/fastify.d.ts`.
 > - **Dynamic RBAC**: authorize by menu+permission, not by role string. Use `preHandler: [fastify.authenticate, fastify.authorize('menu_code', 'permission_code')]` (throws `ForbiddenError`→403). `fastify.requireRole('admin')` is a coarse role check. Decorators in `src/core/plugins/auth-guard.plugin.ts` (registered after `jwt.plugin` in `app.ts`), backed by `src/core/rbac/rbac.reader.ts`. Multi-role resolution is union (most-permissive).

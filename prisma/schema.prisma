@@ -13,116 +13,149 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===== module: auth =====
-// Schema fragment owned by the `auth` module (RBAC + session tables).
-// Appended into prisma/schema.prisma by the schema-builder when this module is enabled.
-// Must be self-contained: do NOT declare Prisma relations to models owned by other modules.
-
-model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  roles    UserRole[]
-  sessions Session[]
-}
-
-model Role {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users               UserRole[]
-  roleMenuPermissions RoleMenuPermission[]
-}
-
-model UserRole {
-  userId     String
-  roleId     String
-  assignedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@id([userId, roleId])
-  @@index([roleId])
-}
-
-model Menu {
-  id         String   @id @default(cuid())
-  parentId   String?
-  code       String   @unique
-  name       String
-  icon       String?
-  path       String?
-  orderIndex Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  parent          Menu?            @relation("MenuTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Menu[]           @relation("MenuTree")
-  menuPermissions MenuPermission[]
-}
+// ===== module: permission =====
+// Schema fragment owned by the `permission` module (global permission catalog).
+// Self-contained: no cross-module @relation; other modules reference by scalar id.
 
 model Permission {
   id          String   @id @default(cuid())
   code        String   @unique
   name        String
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("created_at")
 
+  @@map("permissions")
+}
+
+// ===== module: menu =====
+// Schema fragment owned by the `menu` module (sidebar menus + per-menu permission catalog).
+// `menu_permissions.permission_id` is a scalar FK to the permission module (no @relation).
+
+model Menu {
+  id         String   @id @default(cuid())
+  parentId   String?  @map("parent_id")
+  code       String   @unique
+  name       String
+  icon       String?
+  path       String?
+  orderIndex Int      @default(0) @map("order_index")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  parent          Menu?            @relation("MenuTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Menu[]           @relation("MenuTree")
   menuPermissions MenuPermission[]
+
+  @@map("menus")
 }
 
 model MenuPermission {
   id           String @id @default(cuid())
-  menuId       String
-  permissionId String
+  menuId       String @map("menu_id")
+  permissionId String @map("permission_id")
 
-  menu                Menu                 @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  permission          Permission           @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  roleMenuPermissions RoleMenuPermission[]
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
   @@unique([menuId, permissionId])
   @@index([permissionId])
+  @@map("menu_permissions")
+}
+
+// ===== module: session =====
+// Schema fragment owned by the `session` module (opaque refresh-token sessions).
+// `sessions.user_id` is a scalar FK to the auth module (no @relation) to keep the
+// fragment self-contained and the dependsOn graph acyclic.
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  accessTokenJti   String   @map("access_token_jti")
+  deviceInfo       String?  @map("device_info")
+  ipAddress        String?  @map("ip_address")
+  isRevoked        Boolean  @default(false) @map("is_revoked")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  lastUsedAt       DateTime @default(now()) @map("last_used_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ===== module: role =====
+// Schema fragment owned by the `role` module (roles + role-level grants).
+// `role_menu_permissions.menu_permission_id` is a scalar FK to the menu module (no @relation).
+
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roleMenuPermissions RoleMenuPermission[]
+
+  @@map("roles")
 }
 
 model RoleMenuPermission {
   id               String   @id @default(cuid())
-  roleId           String
-  menuPermissionId String
-  createdAt        DateTime @default(now())
+  roleId           String   @map("role_id")
+  menuPermissionId String   @map("menu_permission_id")
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  role           Role           @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  menuPermission MenuPermission @relation(fields: [menuPermissionId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, menuPermissionId])
-  @@index([roleId])
   @@index([menuPermissionId])
+  @@map("role_menu_permissions")
 }
 
-model Session {
-  id               String   @id @default(cuid())
-  userId           String
-  refreshTokenHash String   @unique
-  accessTokenJti   String
-  deviceInfo       String?
-  ipAddress        String?
-  isRevoked        Boolean  @default(false)
-  expiresAt        DateTime
-  createdAt        DateTime @default(now())
-  lastUsedAt       DateTime @default(now())
+// ===== module: auth =====
+// Schema fragment owned by the `auth` module (users + the user-side RBAC pivots).
+// Cross-module FKs (role_id, menu_permission_id) are scalar columns (no @relation);
+// cascades to sessions/role-grants are handled in the service layer.
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  roles               UserRole[]
+  permissionOverrides UserMenuPermission[]
+
+  @@map("users")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// User-level permission override (allow/deny) on top of role grants.
+model UserMenuPermission {
+  id               String @id @default(cuid())
+  userId           String @map("user_id")
+  menuPermissionId String @map("menu_permission_id")
+  effect           String @default("allow") // 'allow' | 'deny'
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, menuPermissionId])
+  @@index([menuPermissionId])
+  @@map("user_menu_permissions")
 }

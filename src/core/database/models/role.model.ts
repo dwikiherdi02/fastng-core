@@ -1,8 +1,8 @@
 import mongoose, { type Document, type Model } from 'mongoose'
 
-/** A role's actual grant: for a menu (by code), which permission codes it holds. */
+/** A role's grant: for a menu (by code), which permission codes it holds. */
 export interface IRoleMenuPermission {
-  menuCode: string
+  menu_code: string
   permissions: string[]
 }
 
@@ -10,11 +10,10 @@ export interface IRoleDocument extends Document {
   code: string
   name: string
   description?: string
-  isActive: boolean
-  /** Permissions embedded per role (concept §4.3) — rarely changes, always read together. */
-  menuPermissions: IRoleMenuPermission[]
-  createdAt: Date
-  updatedAt: Date
+  is_active: boolean
+  menu_permissions: IRoleMenuPermission[]
+  created_at: Date
+  updated_at: Date
 }
 
 const roleSchema = new mongoose.Schema<IRoleDocument>(
@@ -22,17 +21,18 @@ const roleSchema = new mongoose.Schema<IRoleDocument>(
     code: { type: String, required: true, unique: true, trim: true },
     name: { type: String, required: true },
     description: { type: String },
-    isActive: { type: Boolean, default: true },
-    menuPermissions: [
+    is_active: { type: Boolean, default: true },
+    menu_permissions: [
       {
         _id: false,
-        menuCode: { type: String, required: true },
+        menu_code: { type: String, required: true },
         permissions: { type: [String], default: [] },
       },
     ],
   },
   {
-    timestamps: true,
+    collection: 'roles',
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
     toJSON: {
       virtuals: true,
       transform(_doc: Document, ret: Record<string, unknown>) {

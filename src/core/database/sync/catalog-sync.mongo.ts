@@ -11,13 +11,13 @@ import { RoleModel } from '../models/role.model.js'
 import { UserModel } from '../models/user.model.js'
 
 export class CatalogSyncMongoRepository implements ICatalogSyncRepository {
-  async upsertPermission(code: string, name: string): Promise<void> {
-    await PermissionModel.updateOne({ code }, { $set: { code, name } }, { upsert: true })
+  async upsertPermission(code: string, name: string, description: string | null): Promise<void> {
+    await PermissionModel.updateOne({ code }, { $set: { code, name, description } }, { upsert: true })
   }
 
   async upsertMenu(menu: MenuInput): Promise<void> {
-    for (const code of menu.permissions) {
-      await this.upsertPermission(code, humanizePermission(code))
+    for (const perm of menu.permissions) {
+      await this.upsertPermission(perm.code, perm.name ?? humanizePermission(perm.code), perm.description)
     }
     await MenuModel.updateOne(
       { code: menu.code },
@@ -27,10 +27,10 @@ export class CatalogSyncMongoRepository implements ICatalogSyncRepository {
           name: menu.name,
           icon: menu.icon,
           path: menu.path,
-          parentCode: menu.parentCode ?? null,
-          orderIndex: menu.orderIndex,
-          isActive: true,
-          permissions: menu.permissions,
+          parent_code: menu.parentCode ?? null,
+          order_index: menu.orderIndex,
+          is_active: true,
+          permissions: menu.permissions.map((p) => p.code),
         },
       },
       { upsert: true }
@@ -39,8 +39,8 @@ export class CatalogSyncMongoRepository implements ICatalogSyncRepository {
 
   async removeMenu(code: string): Promise<void> {
     await MenuModel.deleteOne({ code })
-    // Bidirectional teardown: pull any embedded grants referencing this menu.
-    await RoleModel.updateMany({}, { $pull: { menuPermissions: { menuCode: code } } })
+    await RoleModel.updateMany({}, { $pull: { menu_permissions: { menu_code: code } } })
+    await UserModel.updateMany({}, { $pull: { permission_overrides: { menu_code: code } } })
   }
 
   async listMenusWithPermissions(): Promise<MenuWithPermissions[]> {
@@ -51,13 +51,20 @@ export class CatalogSyncMongoRepository implements ICatalogSyncRepository {
   async upsertRole(code: string, name: string, description?: string): Promise<void> {
     await RoleModel.updateOne(
       { code },
-      { $set: { code, name, description }, $setOnInsert: { menuPermissions: [] } },
+      { $set: { code, name, description }, $setOnInsert: { menu_permissions: [] } },
       { upsert: true }
     )
   }
 
   async setRoleGrants(roleCode: string, grants: RoleGrant[]): Promise<void> {
-    const result = await RoleModel.updateOne({ code: roleCode }, { $set: { menuPermissions: grants } })
+    const result = await RoleModel.updateOne(
+      { code: roleCode },
+      {
+        $set: {
+          menu_permissions: grants.map((g) => ({ menu_code: g.menuCode, permissions: g.permissions })),
+        },
+      }
+    )
     if (result.matchedCount === 0) throw new Error(`Cannot set grants: role "${roleCode}" not found.`)
   }
 
@@ -71,7 +78,7 @@ export class CatalogSyncMongoRepository implements ICatalogSyncRepository {
     const roleIds = roles.map((r) => r._id)
     await UserModel.updateOne(
       { email: data.email },
-      { $set: { username: data.username, password: data.passwordHash, roleIds } },
+      { $set: { username: data.username, password: data.passwordHash, role_ids: roleIds } },
       { upsert: true }
     )
   }

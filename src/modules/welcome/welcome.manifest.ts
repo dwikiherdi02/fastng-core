@@ -9,5 +9,5 @@ export const manifest: ModuleManifest = {
     path: '/',
     order: 1,
   },
-  permissions: ['can_access'],
+  permissions: [{ code: 'can_access', description: 'Access the dashboard' }],
 }

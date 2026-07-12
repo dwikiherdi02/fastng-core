@@ -1,15 +1,20 @@
 import fp from 'fastify-plugin'
 import type { FastifyPluginAsync } from 'fastify'
 import fastifySwagger from '@fastify/swagger'
-import fastifySwaggerUi from '@fastify/swagger-ui'
+import scalarApiReference from '@scalar/fastify-api-reference'
 
+/**
+ * API documentation: @fastify/swagger generates the OpenAPI spec from route
+ * schemas; Scalar (@scalar/fastify-api-reference) renders the interactive UI at
+ * /docs (replacing @fastify/swagger-ui).
+ */
 const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
-  fastify.register(fastifySwagger, {
+  await fastify.register(fastifySwagger, {
     openapi: {
       info: {
         title: 'FastNG API',
         description: 'Modular Clean Architecture REST API built with Fastify',
-        version: '1.0.0',
+        version: '3.0.0',
       },
       components: {
         securitySchemes: {
@@ -23,11 +28,12 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
     },
   })
 
-  fastify.register(fastifySwaggerUi, {
+  await fastify.register(scalarApiReference, {
     routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
+    configuration: {
+      title: 'FastNG API',
+      // Lazily read the live spec so routes registered later are included.
+      content: () => fastify.swagger(),
     },
   })
 }

@@ -9,10 +9,10 @@ interface LeanUserDoc {
   _id: Types.ObjectId
   username: string
   email: string
-  isActive: boolean
-  roleIds: Types.ObjectId[]
-  createdAt: Date
-  updatedAt: Date
+  is_active: boolean
+  role_ids: Types.ObjectId[]
+  created_at: Date
+  updated_at: Date
 }
 
 async function resolveRoleCodes(roleIds: Types.ObjectId[]): Promise<string[]> {
@@ -28,10 +28,10 @@ async function toEntity(doc: LeanUserDoc): Promise<UserEntity> {
     id: doc._id.toString(),
     username: doc.username,
     email: doc.email,
-    roles: await resolveRoleCodes(doc.roleIds),
-    isActive: doc.isActive,
-    createdAt: doc.createdAt,
-    updatedAt: doc.updatedAt,
+    roles: await resolveRoleCodes(doc.role_ids),
+    isActive: doc.is_active,
+    createdAt: doc.created_at,
+    updatedAt: doc.updated_at,
   })
 }
 
@@ -47,7 +47,7 @@ export class UserMongoRepository implements IUserRepository {
   }: { page?: number; limit?: number } = {}): Promise<{ items: UserEntity[]; total: number }> {
     const skip = (page - 1) * limit
     const [docs, total] = await Promise.all([
-      UserModel.find().skip(skip).limit(limit).sort({ createdAt: -1 }).lean<LeanUserDoc[]>(),
+      UserModel.find().skip(skip).limit(limit).sort({ created_at: -1 }).lean<LeanUserDoc[]>(),
       UserModel.countDocuments(),
     ])
     const items = await Promise.all(docs.map(toEntity))

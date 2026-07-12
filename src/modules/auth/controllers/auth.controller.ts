@@ -57,7 +57,7 @@ export class AuthController {
   }
 
   async getMenus(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    const menus = await this.service.getMenus(request.user.roles)
+    const menus = await this.service.getMenus(request.user.sub, request.user.roles)
     reply.send(successResponse(menus))
   }
 

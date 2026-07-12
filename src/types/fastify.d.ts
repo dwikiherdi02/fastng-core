@@ -10,6 +10,8 @@ declare module 'fastify' {
     authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void>
     /** Guard factory: requires the given permission on the given menu (dynamic RBAC). */
     authorize(menuCode: string, permissionCode: string): PreHandler
+    /** Guard factory: requires `can_access` on the given menu (gates a whole route group). */
+    requireMenuAccess(menuCode: string): PreHandler
     /** Guard factory: requires at least one of the given role codes. */
     requireRole(...roleCodes: string[]): PreHandler
   }

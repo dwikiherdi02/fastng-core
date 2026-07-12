@@ -1,6 +1,6 @@
 import type { LoadedManifests } from '../../../registry/manifest.js'
-import type { MenuManifest } from '../../../registry/manifest.js'
-import type { ICatalogSyncRepository, MenuInput } from './catalog-sync.repository.js'
+import type { MenuManifest, PermissionManifest } from '../../../registry/manifest.js'
+import type { ICatalogSyncRepository, MenuInput, PermissionInput } from './catalog-sync.repository.js'
 
 export interface CatalogSyncSummary {
   syncedMenus: string[]
@@ -24,7 +24,7 @@ export async function syncCatalog(
 
   const menuInputs: MenuInput[] = manifests.enabled
     .map((m) => ({ menu: menuOf(m.manifest.menu), permissions: m.manifest.permissions ?? [] }))
-    .filter((m): m is { menu: MenuManifest; permissions: string[] } => m.menu !== null)
+    .filter((m): m is { menu: MenuManifest; permissions: PermissionManifest[] } => m.menu !== null)
     .map(({ menu, permissions }) => ({
       code: menu.code,
       name: menu.name,
@@ -32,7 +32,9 @@ export async function syncCatalog(
       path: menu.path,
       parentCode: menu.parent,
       orderIndex: menu.order ?? 0,
-      permissions,
+      permissions: permissions.map(
+        (p): PermissionInput => ({ code: p.code, name: p.name, description: p.description })
+      ),
     }))
     // Upsert top-level menus before children so parent lookups resolve.
     .sort((a, b) => (a.parentCode ? 1 : 0) - (b.parentCode ? 1 : 0))

@@ -7,16 +7,40 @@ export interface ModuleConfig {
 
 const modules: ModuleConfig[] = [
   {
+    name: 'permission',
+    enabled: true,
+    path: '../modules/permission/module.js',
+    dependsOn: [],
+  },
+  {
+    name: 'menu',
+    enabled: true,
+    path: '../modules/menu/module.js',
+    dependsOn: ['permission'],
+  },
+  {
+    name: 'session',
+    enabled: true,
+    path: '../modules/session/module.js',
+    dependsOn: [],
+  },
+  {
+    name: 'role',
+    enabled: true,
+    path: '../modules/role/module.js',
+    dependsOn: ['menu'],
+  },
+  {
     name: 'auth',
     enabled: true,
     path: '../modules/auth/module.js',
-    dependsOn: [],
+    dependsOn: ['role', 'menu', 'session'],
   },
   {
     name: 'users',
     enabled: true,
     path: '../modules/users/module.js',
-    dependsOn: ['auth'],
+    dependsOn: ['auth', 'role'],
   },
   {
     name: 'welcome',

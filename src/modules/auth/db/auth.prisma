@@ -1,112 +1,44 @@
-// Schema fragment owned by the `auth` module (RBAC + session tables).
-// Appended into prisma/schema.prisma by the schema-builder when this module is enabled.
-// Must be self-contained: do NOT declare Prisma relations to models owned by other modules.
+// Schema fragment owned by the `auth` module (users + the user-side RBAC pivots).
+// Cross-module FKs (role_id, menu_permission_id) are scalar columns (no @relation);
+// cascades to sessions/role-grants are handled in the service layer.
 
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
   email     String   @unique
   password  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  roles    UserRole[]
-  sessions Session[]
-}
+  roles               UserRole[]
+  permissionOverrides UserMenuPermission[]
 
-model Role {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users               UserRole[]
-  roleMenuPermissions RoleMenuPermission[]
+  @@map("users")
 }
 
 model UserRole {
-  userId     String
-  roleId     String
-  assignedAt DateTime @default(now())
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@index([roleId])
+  @@map("user_roles")
 }
 
-model Menu {
-  id         String   @id @default(cuid())
-  parentId   String?
-  code       String   @unique
-  name       String
-  icon       String?
-  path       String?
-  orderIndex Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  parent          Menu?            @relation("MenuTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Menu[]           @relation("MenuTree")
-  menuPermissions MenuPermission[]
-}
-
-model Permission {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-
-  menuPermissions MenuPermission[]
-}
-
-model MenuPermission {
-  id           String @id @default(cuid())
-  menuId       String
-  permissionId String
-
-  menu                Menu                 @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  permission          Permission           @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  roleMenuPermissions RoleMenuPermission[]
-
-  @@unique([menuId, permissionId])
-  @@index([permissionId])
-}
-
-model RoleMenuPermission {
-  id               String   @id @default(cuid())
-  roleId           String
-  menuPermissionId String
-  createdAt        DateTime @default(now())
-
-  role           Role           @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  menuPermission MenuPermission @relation(fields: [menuPermissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, menuPermissionId])
-  @@index([roleId])
-  @@index([menuPermissionId])
-}
-
-model Session {
-  id               String   @id @default(cuid())
-  userId           String
-  refreshTokenHash String   @unique
-  accessTokenJti   String
-  deviceInfo       String?
-  ipAddress        String?
-  isRevoked        Boolean  @default(false)
-  expiresAt        DateTime
-  createdAt        DateTime @default(now())
-  lastUsedAt       DateTime @default(now())
+// User-level permission override (allow/deny) on top of role grants.
+model UserMenuPermission {
+  id               String @id @default(cuid())
+  userId           String @map("user_id")
+  menuPermissionId String @map("menu_permission_id")
+  effect           String @default("allow") // 'allow' | 'deny'
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@unique([userId, menuPermissionId])
+  @@index([menuPermissionId])
+  @@map("user_menu_permissions")
 }

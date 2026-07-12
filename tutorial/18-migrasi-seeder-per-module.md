@@ -1,5 +1,7 @@
 # 18 — Migrasi & Seeder Per-Module
 
+> **Update v3.0.0**: nama tabel & kolom kini **snake_case** (Prisma `@@map`/`@map`; koleksi & field Mongo snake_case) — akses Prisma client tetap camelCase. Fragmen `db/*.prisma` kini dimiliki per modul RBAC (`permission`/`menu`/`role`/`session`), bukan lagi menumpuk di `auth` (lihat `tutorial/22`).
+
 **Tujuan**: Menjelaskan bagaimana tabel dan data katalog sebuah modul hanya ikut termigrasi saat modul itu `enabled: true`, dan otomatis dihapus saat `enabled: false` (dua arah).
 
 **Kapan digunakan**: Saat mengaktifkan/menonaktifkan modul, atau menambah modul baru yang punya tabel sendiri.

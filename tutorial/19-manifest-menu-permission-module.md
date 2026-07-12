@@ -1,5 +1,13 @@
 # 19 — Manifest Menu & Permission per Modul
 
+> **Update v3.0.0**: `permissions` kini array objek `{ code, name?, description, route? }` (bukan `string[]`). `description` wajib dan tampil di checklist admin + docs Scalar. Contoh:
+> ```ts
+> permissions: [
+>   { code: 'can_access', description: 'Access the menu' },
+>   { code: 'read', description: 'View items', route: { method: 'GET', path: '/api/v1/items' } },
+> ]
+> ```
+
 **Tujuan**: Menjelaskan file `{name}.manifest.ts` yang mendeklarasikan apakah sebuah modul adalah menu sidebar dan permission apa yang didukungnya.
 
 **Kapan digunakan**: Saat membuat modul yang tampil di sidebar, atau modul service/helper yang bukan menu.

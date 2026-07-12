@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client'
 import env from '../config/env.config.js'
 import { RoleModel } from '../database/models/role.model.js'
 import { MenuModel } from '../database/models/menu.model.js'
+import { UserModel } from '../database/models/user.model.js'
 
 export interface MenuNode {
   code: string
@@ -13,15 +14,20 @@ export interface MenuNode {
 }
 
 /**
- * Read-side of the RBAC catalog. Lives in `core` (not the auth module) so the
- * auth-guard plugin can use it without core→module imports. The tables it reads
- * are owned by the auth module's Prisma fragment / Mongoose models.
+ * Read-side of the RBAC catalog. Lives in `core` (not a module) so the auth-guard
+ * plugin can use it without core→module imports. Resolves effective permissions
+ * as: user override (allow/deny) wins over role grant (union of the user's roles).
+ * `can_access` acts as a master gate — any non-`can_access` check also requires
+ * effective `can_access` on the same menu.
  */
 export interface IRbacReader {
-  /** True if any of the given role codes grants `permissionCode` on `menuCode` (union / most-permissive). */
-  hasPermission(roleCodes: string[], menuCode: string, permissionCode: string): Promise<boolean>
-  /** Sidebar tree of menus these roles can access (permission `can_access`), ordered by orderIndex. */
-  getAccessibleMenus(roleCodes: string[]): Promise<MenuNode[]>
+  hasPermission(
+    userId: string,
+    roleCodes: string[],
+    menuCode: string,
+    permissionCode: string
+  ): Promise<boolean>
+  getAccessibleMenus(userId: string, roleCodes: string[]): Promise<MenuNode[]>
 }
 
 interface RawMenu {
@@ -34,7 +40,6 @@ interface RawMenu {
   orderIndex: number
 }
 
-/** Build a nested menu tree from a flat list; a menu whose parent is absent becomes a root. */
 function buildTree(items: RawMenu[]): MenuNode[] {
   const nodes = new Map<string, MenuNode>()
   for (const i of items) {
@@ -65,75 +70,128 @@ function buildTree(items: RawMenu[]): MenuNode[] {
 class PrismaRbacReader implements IRbacReader {
   constructor(private prisma: PrismaClient) {}
 
-  async hasPermission(roleCodes: string[], menuCode: string, permissionCode: string): Promise<boolean> {
+  /** Resolve the menu_permission id for (menuCode, permCode), or null if not in the catalog. */
+  private async menuPermissionId(menuCode: string, permCode: string): Promise<string | null> {
+    const [menu, perm] = await Promise.all([
+      this.prisma.menu.findUnique({ where: { code: menuCode } }),
+      this.prisma.permission.findUnique({ where: { code: permCode } }),
+    ])
+    if (!menu || !perm) return null
+    const mp = await this.prisma.menuPermission.findUnique({
+      where: { menuId_permissionId: { menuId: menu.id, permissionId: perm.id } },
+    })
+    return mp?.id ?? null
+  }
+
+  /** Effective grant for a menu_permission: user override wins, else role grant. */
+  private async isEffective(
+    userId: string,
+    roleCodes: string[],
+    menuPermissionId: string
+  ): Promise<boolean> {
+    const override = await this.prisma.userMenuPermission.findUnique({
+      where: { userId_menuPermissionId: { userId, menuPermissionId } },
+    })
+    if (override) return override.effect === 'allow'
     if (roleCodes.length === 0) return false
     const count = await this.prisma.roleMenuPermission.count({
-      where: {
-        role: { code: { in: roleCodes } },
-        menuPermission: { menu: { code: menuCode }, permission: { code: permissionCode } },
-      },
+      where: { menuPermissionId, role: { code: { in: roleCodes } } },
     })
     return count > 0
   }
 
-  async getAccessibleMenus(roleCodes: string[]): Promise<MenuNode[]> {
-    if (roleCodes.length === 0) return []
-    const grants = await this.prisma.roleMenuPermission.findMany({
-      where: {
-        role: { code: { in: roleCodes } },
-        menuPermission: { permission: { code: 'can_access' } },
-      },
-      select: { menuPermission: { select: { menu: true } } },
-    })
-    const menus = new Map<string, RawMenu>()
-    for (const g of grants) {
-      const m = g.menuPermission.menu
-      menus.set(m.id, {
-        key: m.id,
-        parentKey: m.parentId,
-        code: m.code,
-        name: m.name,
-        icon: m.icon,
-        path: m.path,
-        orderIndex: m.orderIndex,
-      })
+  async hasPermission(
+    userId: string,
+    roleCodes: string[],
+    menuCode: string,
+    permCode: string
+  ): Promise<boolean> {
+    const mpId = await this.menuPermissionId(menuCode, permCode)
+    if (!mpId) return false
+    if (permCode !== 'can_access') {
+      if (!(await this.hasPermission(userId, roleCodes, menuCode, 'can_access'))) return false
     }
-    return buildTree([...menus.values()])
+    return this.isEffective(userId, roleCodes, mpId)
+  }
+
+  async getAccessibleMenus(userId: string, roleCodes: string[]): Promise<MenuNode[]> {
+    const canAccess = await this.prisma.permission.findUnique({ where: { code: 'can_access' } })
+    if (!canAccess) return []
+    const menus = await this.prisma.menu.findMany()
+    const accessible: RawMenu[] = []
+    for (const m of menus) {
+      const mp = await this.prisma.menuPermission.findUnique({
+        where: { menuId_permissionId: { menuId: m.id, permissionId: canAccess.id } },
+      })
+      if (!mp) continue
+      if (await this.isEffective(userId, roleCodes, mp.id)) {
+        accessible.push({
+          key: m.id,
+          parentKey: m.parentId,
+          code: m.code,
+          name: m.name,
+          icon: m.icon,
+          path: m.path,
+          orderIndex: m.orderIndex,
+        })
+      }
+    }
+    return buildTree(accessible)
   }
 }
 
 class MongoRbacReader implements IRbacReader {
-  async hasPermission(roleCodes: string[], menuCode: string, permissionCode: string): Promise<boolean> {
+  private async isEffective(
+    userId: string,
+    roleCodes: string[],
+    menuCode: string,
+    permCode: string
+  ): Promise<boolean> {
+    const user = await UserModel.findById(userId).select('permission_overrides').lean()
+    const override = user?.permission_overrides?.find(
+      (o) => o.menu_code === menuCode && o.permission_code === permCode
+    )
+    if (override) return override.effect === 'allow'
     if (roleCodes.length === 0) return false
     const role = await RoleModel.findOne({
       code: { $in: roleCodes },
-      menuPermissions: { $elemMatch: { menuCode, permissions: permissionCode } },
+      menu_permissions: { $elemMatch: { menu_code: menuCode, permissions: permCode } },
     }).lean()
     return role !== null
   }
 
-  async getAccessibleMenus(roleCodes: string[]): Promise<MenuNode[]> {
-    if (roleCodes.length === 0) return []
-    const roles = await RoleModel.find({ code: { $in: roleCodes } }).lean()
-    const accessibleCodes = new Set<string>()
-    for (const role of roles) {
-      for (const mp of role.menuPermissions ?? []) {
-        if (mp.permissions.includes('can_access')) accessibleCodes.add(mp.menuCode)
+  async hasPermission(
+    userId: string,
+    roleCodes: string[],
+    menuCode: string,
+    permCode: string
+  ): Promise<boolean> {
+    const menu = await MenuModel.findOne({ code: menuCode }).lean()
+    if (!menu || !(menu.permissions ?? []).includes(permCode)) return false
+    if (permCode !== 'can_access') {
+      if (!(await this.hasPermission(userId, roleCodes, menuCode, 'can_access'))) return false
+    }
+    return this.isEffective(userId, roleCodes, menuCode, permCode)
+  }
+
+  async getAccessibleMenus(userId: string, roleCodes: string[]): Promise<MenuNode[]> {
+    const menus = await MenuModel.find().lean()
+    const accessible: RawMenu[] = []
+    for (const m of menus) {
+      if (!(m.permissions ?? []).includes('can_access')) continue
+      if (await this.isEffective(userId, roleCodes, m.code, 'can_access')) {
+        accessible.push({
+          key: m.code,
+          parentKey: m.parent_code ?? null,
+          code: m.code,
+          name: m.name,
+          icon: m.icon ?? null,
+          path: m.path ?? null,
+          orderIndex: m.order_index,
+        })
       }
     }
-    if (accessibleCodes.size === 0) return []
-    const menus = await MenuModel.find({ code: { $in: [...accessibleCodes] } }).lean()
-    return buildTree(
-      menus.map((m) => ({
-        key: m.code,
-        parentKey: m.parentCode ?? null,
-        code: m.code,
-        name: m.name,
-        icon: m.icon ?? null,
-        path: m.path ?? null,
-        orderIndex: m.orderIndex,
-      }))
-    )
+    return buildTree(accessible)
   }
 }
 

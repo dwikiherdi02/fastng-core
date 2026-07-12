@@ -1,5 +1,7 @@
 # 17 — RBAC Dinamis: User → Role → Menu → Permission
 
+> **Update v3.0.0**: tabel RBAC kini dipecah ke modul `permission`/`menu`/`role`/`session` (lihat `tutorial/22`). Ditambahkan override level-user (`allow`/`deny`) dan cascade `can_access` (lihat `tutorial/23`). Signature reader menjadi `hasPermission(userId, roleCodes, menuCode, permCode)` dan `getAccessibleMenus(userId, roleCodes)`.
+
 **Tujuan**: Menjelaskan model otorisasi dinamis di FastNG di mana permission tidak di-hardcode, melainkan dikatalogkan per-menu dan diberikan (grant) per-role.
 
 **Kapan digunakan**: Saat Anda perlu membatasi akses endpoint berdasarkan permission spesifik (`create`, `read`, `update`, `delete`, `export`, `can_access`, dst.) yang bisa berbeda untuk tiap menu/modul, dan bisa diubah admin tanpa migrasi schema.

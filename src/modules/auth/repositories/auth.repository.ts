@@ -5,39 +5,11 @@ import env from '../../../core/config/env.config.js'
 import { AuthPrismaRepository } from './auth.prisma.repository.js'
 import { AuthMongoRepository } from './auth.mongo.repository.js'
 
-/** Minimal session state needed by the refresh flow. */
-export interface SessionRecord {
-  id: string
-  userId: string
-  accessTokenJti: string
-  isRevoked: boolean
-  expiresAt: Date
-}
-
-/** Session metadata exposed to the user (device list / force-logout). */
-export interface SessionInfo {
-  id: string
-  deviceInfo: string | null
-  ipAddress: string | null
-  isRevoked: boolean
-  createdAt: Date
-  lastUsedAt: Date
-  expiresAt: Date
-}
-
-export interface CreateSessionData {
-  userId: string
-  refreshTokenHash: string
-  accessTokenJti: string
-  expiresAt: Date
-  deviceInfo?: string
-  ipAddress?: string
-}
-
-export interface RotateSessionData {
-  refreshTokenHash: string
-  accessTokenJti: string
-  expiresAt: Date
+/** A user-level permission override (allow/deny) keyed by menu + permission code. */
+export interface UserPermissionOverride {
+  menuCode: string
+  permissionCode: string
+  effect: 'allow' | 'deny'
 }
 
 export interface IAuthRepository {
@@ -45,21 +17,14 @@ export interface IAuthRepository {
   findById(id: string): Promise<AuthEntity | null>
   /** Create a user and assign the default `user` role (if seeded). */
   createUser(data: { username: string; email: string; passwordHash: string }): Promise<AuthEntity>
-
-  createSession(data: CreateSessionData): Promise<{ id: string }>
-  findSessionByHash(refreshTokenHash: string): Promise<SessionRecord | null>
-  /** Rotate a session in place: new refresh hash + jti + expiry, bump lastUsedAt. */
-  rotateSession(sessionId: string, data: RotateSessionData): Promise<void>
-  /** Mark a session revoked (force-logout); the current access token stays valid until it expires. */
-  revokeSession(sessionId: string): Promise<void>
-  /** Revoke a session only if it belongs to `userId`. Returns false if not found/owned. */
-  revokeUserSession(userId: string, sessionId: string): Promise<boolean>
-  /** Delete a session by its refresh-token hash (logout). */
-  deleteSessionByHash(refreshTokenHash: string): Promise<void>
-  /** Delete every session for a user (e.g. on email change or account deletion). */
-  revokeAllUserSessions(userId: string): Promise<void>
-  listUserSessions(userId: string): Promise<SessionInfo[]>
-
+  /** Role codes assigned to a user (via user_roles). */
+  getUserRoleCodes(userId: string): Promise<string[]>
+  /** Replace a user's role assignments (admin). */
+  setUserRoles(userId: string, roleCodes: string[]): Promise<void>
+  /** Current user-level permission overrides. */
+  getUserPermissionOverrides(userId: string): Promise<UserPermissionOverride[]>
+  /** Replace a user's permission overrides (admin checklist). */
+  setUserPermissionOverrides(userId: string, overrides: UserPermissionOverride[]): Promise<void>
   withClient(tx: TransactionClient): IAuthRepository
 }
 

@@ -6,13 +6,13 @@ export interface IMenuDocument extends Document {
   icon?: string
   path?: string
   /** `code` of the parent menu (self-referencing tree), null for top-level. */
-  parentCode?: string | null
-  orderIndex: number
-  isActive: boolean
+  parent_code?: string | null
+  order_index: number
+  is_active: boolean
   /** Catalog of permission codes this menu supports (mirrors relational menu_permissions). */
   permissions: string[]
-  createdAt: Date
-  updatedAt: Date
+  created_at: Date
+  updated_at: Date
 }
 
 const menuSchema = new mongoose.Schema<IMenuDocument>(
@@ -21,13 +21,14 @@ const menuSchema = new mongoose.Schema<IMenuDocument>(
     name: { type: String, required: true },
     icon: { type: String },
     path: { type: String },
-    parentCode: { type: String, default: null },
-    orderIndex: { type: Number, default: 0 },
-    isActive: { type: Boolean, default: true },
+    parent_code: { type: String, default: null },
+    order_index: { type: Number, default: 0 },
+    is_active: { type: Boolean, default: true },
     permissions: { type: [String], default: [] },
   },
   {
-    timestamps: true,
+    collection: 'menus',
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
     toJSON: {
       virtuals: true,
       transform(_doc: Document, ret: Record<string, unknown>) {

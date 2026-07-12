@@ -5,7 +5,7 @@ export interface IPermissionDocument extends Document {
   code: string
   name: string
   description?: string
-  createdAt: Date
+  created_at: Date
 }
 
 const permissionSchema = new mongoose.Schema<IPermissionDocument>(
@@ -15,7 +15,8 @@ const permissionSchema = new mongoose.Schema<IPermissionDocument>(
     description: { type: String },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    collection: 'permissions',
+    timestamps: { createdAt: 'created_at', updatedAt: false },
     toJSON: {
       virtuals: true,
       transform(_doc: Document, ret: Record<string, unknown>) {

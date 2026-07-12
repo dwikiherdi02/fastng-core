@@ -18,10 +18,25 @@ export interface MenuManifest {
   order?: number
 }
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+
+/**
+ * A permission this menu supports. Each carries a human description (surfaced in
+ * the admin checklist UI + API docs) and, optionally, the route it is bound to.
+ */
+export interface PermissionManifest {
+  code: string
+  /** Defaults to a humanized `code` when omitted. */
+  name?: string
+  description: string
+  /** Optional hint of which HTTP route enforces this permission (docs/checklist UI). */
+  route?: { method: HttpMethod; path: string }
+}
+
 export interface ModuleManifest {
   menu?: MenuManifest | false
-  /** Permission codes this menu supports, e.g. ['create','read','update','delete','export','can_access']. */
-  permissions?: string[]
+  /** Permissions this menu supports (with descriptions). `can_access` gates the whole menu. */
+  permissions?: PermissionManifest[]
 }
 
 export interface LoadedManifest {

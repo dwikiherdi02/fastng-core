@@ -1,0 +1,12 @@
+// Schema fragment owned by the `permission` module (global permission catalog).
+// Self-contained: no cross-module @relation; other modules reference by scalar id.
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("permissions")
+}
