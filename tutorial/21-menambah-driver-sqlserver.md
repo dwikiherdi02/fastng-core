@@ -8,7 +8,7 @@
 
 ## Pengenalan
 
-FastNG mendukung lima driver: `sqlite` (default), `mysql`, `postgresql`, `sqlserver`, dan `mongodb`. Empat pertama memakai Prisma; `sqlserver` ditambahkan pada v2.0.0. Karena schema Prisma sekarang dirakit dari blok base per-driver + fragmen modul, mengganti driver cukup mengubah `DB_DRIVER` dan `DATABASE_URL` lalu `yarn db:sync`.
+FastNG mendukung lima driver: `sqlite` (default), `mysql`, `postgresql`, `sqlserver`, dan `mongodb`. Empat pertama memakai Prisma; `sqlserver` ditambahkan pada v2.0.0. Karena schema Prisma sekarang dirakit dari blok base per-driver + fragmen modul, mengganti driver cukup mengubah `DB_DRIVER` dan `DATABASE_URL` lalu `bun run db:sync`.
 
 ## Alur/Mekanisme
 
@@ -30,8 +30,8 @@ DATABASE_URL="sqlserver://localhost:1433;database=FastNG;user=sa;password=Your_p
 ### Langkah 2: Sinkron & seed
 
 ```bash
-yarn db:sync
-yarn db:seed
+bun run db:sync
+bun run db:seed
 ```
 
 `db:sync` merakit `prisma/schema.prisma` dengan `provider = "sqlserver"` (dari `prisma/base/sqlserver.prisma`), lalu `prisma db push`.
@@ -39,7 +39,7 @@ yarn db:seed
 ### Langkah 3: Jalankan
 
 ```bash
-yarn dev
+bun run dev
 ```
 
 ## Contoh Lengkap
@@ -64,12 +64,12 @@ datasource db {
 | ✅ Lakukan | ❌ Hindari |
 |---|---|
 | `encrypt=true;trustServerCertificate=true` untuk dev lokal | Membiarkan koneksi tanpa enkripsi di produksi |
-| `yarn db:sync` setelah ganti driver | Menyalin schema lama secara manual |
+| `bun run db:sync` setelah ganti driver | Menyalin schema lama secara manual |
 
 ## Verifikasi
 
-1. `yarn db:sync` selesai tanpa error dan tabel terbentuk di SQL Server.
-2. `yarn db:seed` membuat role & admin user.
+1. `bun run db:sync` selesai tanpa error dan tabel terbentuk di SQL Server.
+2. `bun run db:seed` membuat role & admin user.
 3. `POST /api/v1/auth/login` dengan admin berhasil.
 
 ## Catatan

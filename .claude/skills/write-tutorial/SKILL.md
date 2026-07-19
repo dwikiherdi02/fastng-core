@@ -198,7 +198,7 @@ A realistic, copy-pasteable example. Example:
 > **File: `src/app.ts` (register the middleware)**
 > [full code]
 >
-> **Test**: Jalankan `yarn dev`, buat request, lihat di logs: `[abc-def-123] GET /api/v1/posts`
+> **Test**: Jalankan `bun run dev`, buat request, lihat di logs: `[abc-def-123] GET /api/v1/posts`
 
 ### Aturan/Pedoman
 
@@ -216,7 +216,7 @@ Table or bullets of do's and don'ts. Example:
 
 Step-by-step how to test. Example:
 
-> 1. Jalankan `yarn dev`
+> 1. Jalankan `bun run dev`
 > 2. Buat request: `curl http://localhost:3000/api/v1/posts`
 > 3. Lihat di server logs untuk baris: `[request-id] GET /api/v1/posts`
 > 4. Verifikasi setiap request memiliki unique request ID di header response: `X-Request-Id: ...`
@@ -259,8 +259,8 @@ Before committing:
 Run:
 
 ```bash
-yarn format  # format code samples
-yarn lint    # lint any embedded code
+bun run format  # format code samples
+bun run lint    # lint any embedded code
 ```
 
 ## Step 6: Update Related Files

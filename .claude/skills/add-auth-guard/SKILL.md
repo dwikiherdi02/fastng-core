@@ -117,7 +117,7 @@ fastify.delete('/:id', adminOnly, (request, reply) => controller.deletePost(requ
 ### Option A: Prisma Studio GUI
 
 ```bash
-yarn db:studio
+bun run db:studio
 ```
 
 Opens a browser GUI. Navigate to the `User` table, find or create a user, and manually set the `role` field to `'admin'`.
@@ -180,7 +180,7 @@ model User {
 }
 ```
 
-Run: `yarn db:generate && yarn db:migrate`
+Run: `bun run db:generate && bun run db:migrate`
 
 For MongoDB, update your Mongoose schema with an enum:
 

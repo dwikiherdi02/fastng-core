@@ -96,7 +96,7 @@ Numbered steps with file paths, code examples, and exact commands. Each step sho
 
 Explanation + code sample + command:
 ```bash
-yarn db:push
+bun run db:push
 ```
 
 ### Langkah 2: Edit file Y

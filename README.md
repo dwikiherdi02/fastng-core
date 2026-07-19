@@ -19,13 +19,14 @@ Mendukung multiple database driver (SQLite, MySQL, PostgreSQL, MongoDB) yang dap
 | API Docs | Swagger UI (`/docs`) |
 | Logging | Pino (built-in Fastify) |
 | Scheduling | `@fastify/schedule` + `toad-scheduler` |
-| Dev build | tsx (zero-build dev server) |
+| Dev build | Bun (native TS/ESM, zero-build dev server) |
 
 ---
 
 ## Prasyarat
 
-- **Node.js** >= 20
+- **Bun** >= 1.1 (package manager + dev/CLI runtime)
+- **Node.js** >= 20 (dibutuhkan oleh beberapa tooling seperti Prisma CLI)
 - Database sesuai driver yang dipilih:
   - SQLite — tidak perlu instalasi tambahan
   - MySQL — MySQL Server >= 8
@@ -42,7 +43,7 @@ git clone <repo-url>
 cd FastNG
 
 # 2. Install dependencies
-yarn
+bun install
 
 # 3. Salin file env dan sesuaikan
 cp .env.example .env
@@ -94,8 +95,8 @@ DB_DRIVER=sqlite
 DATABASE_URL="file:./prisma/dev.db"
 ```
 ```bash
-yarn db:push   # buat tabel
-yarn dev
+bun run db:push   # buat tabel
+bun run dev
 ```
 
 #### MySQL
@@ -106,8 +107,8 @@ DATABASE_URL="mysql://user:password@localhost:3306/FastNG"
 ```bash
 # Salin schema MySQL ke schema utama
 cp prisma/schema.mysql.prisma prisma/schema.prisma
-yarn db:migrate
-yarn dev
+bun run db:migrate
+bun run dev
 ```
 
 #### PostgreSQL
@@ -117,8 +118,8 @@ DATABASE_URL="postgresql://user:password@localhost:5432/FastNG"
 ```
 ```bash
 cp prisma/schema.postgresql.prisma prisma/schema.prisma
-yarn db:migrate
-yarn dev
+bun run db:migrate
+bun run dev
 ```
 
 #### MongoDB
@@ -128,7 +129,7 @@ MONGODB_URI=mongodb://localhost:27017/FastNG
 ```
 ```bash
 # Tidak perlu migrasi — schema dikelola Mongoose
-yarn dev
+bun run dev
 ```
 
 ---
@@ -137,11 +138,11 @@ yarn dev
 
 ```bash
 # Development (auto-restart on file change)
-yarn dev
+bun run dev
 
 # Production (compile dulu)
-yarn build
-yarn start
+bun run build
+bun run start
 ```
 
 Server berjalan di `http://localhost:3000`  
@@ -396,13 +397,13 @@ Edit `src/registry/module.registry.ts`:
 }
 ```
 
-> **Catatan:** `path` tetap menggunakan ekstensi `.js` karena NodeNext ESM memerlukan import path eksplisit — saat dev `tsx` me-resolve `.js` → `.ts` secara transparan.
+> **Catatan:** `path` tetap menggunakan ekstensi `.js` karena NodeNext ESM memerlukan import path eksplisit — saat dev `bun` me-resolve `.js` → `.ts` secara transparan.
 
 **3. Tambahkan model Prisma** (jika relational)
 
 Edit `prisma/schema.prisma`, lalu:
 ```bash
-yarn db:migrate
+bun run db:migrate
 ```
 
 Modul akan otomatis terdaftar saat server restart — tanpa mengubah `app.js`.
@@ -426,15 +427,15 @@ Modul akan otomatis terdaftar saat server restart — tanpa mengubah `app.js`.
 
 | Script | Perintah | Deskripsi |
 |---|---|---|
-| `yarn dev` | `node --env-file=.env --import tsx/esm --watch src/server.ts` | Development server (no build needed) |
-| `yarn build` | `tsc` | Compile TypeScript ke `dist/` |
-| `yarn start` | `node --env-file=.env dist/server.js` | Production server (jalankan setelah build) |
-| `yarn db:generate` | `prisma generate` | Generate Prisma Client |
-| `yarn db:migrate` | `prisma migrate dev` | Buat + jalankan migrasi |
-| `yarn db:push` | `prisma db push` | Push schema tanpa migrasi (dev) |
-| `yarn lint` | `eslint src/` | Lint kode TypeScript |
-| `yarn format` | `prettier --write src/` | Format kode |
-| `yarn audit` | `npm audit --audit-level=high` | Cek keamanan dependency |
+| `bun run dev` | `bun --env-file=.env --watch src/server.ts` | Development server (no build needed) |
+| `bun run build` | `tsc` | Compile TypeScript ke `dist/` |
+| `bun run start` | `bun --env-file=.env dist/server.js` | Production server (jalankan setelah build) |
+| `bun run db:generate` | `prisma generate` | Generate Prisma Client |
+| `bun run db:migrate` | `prisma migrate dev` | Buat + jalankan migrasi |
+| `bun run db:push` | `prisma db push` | Push schema tanpa migrasi (dev) |
+| `bun run lint` | `eslint src/` | Lint kode TypeScript |
+| `bun run format` | `prettier --write src/` | Format kode |
+| `bun audit` | `bun audit --audit-level=high` | Cek keamanan dependency |
 
 ---
 

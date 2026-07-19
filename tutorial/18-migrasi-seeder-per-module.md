@@ -6,7 +6,7 @@
 
 **Kapan digunakan**: Saat mengaktifkan/menonaktifkan modul, atau menambah modul baru yang punya tabel sendiri.
 
-**Prasyarat**: File `.env` terisi (`DB_DRIVER`, `DATABASE_URL`/`MONGODB_URI`). Package manager `yarn`.
+**Prasyarat**: File `.env` terisi (`DB_DRIVER`, `DATABASE_URL`/`MONGODB_URI`). Package manager `Bun`.
 
 ## Pengenalan
 
@@ -14,13 +14,13 @@ Sebelumnya schema Prisma bersifat monolitik: semua tabel selalu ada. Sekarang **
 
 Dua perintah utama:
 
-- `yarn db:sync` — validasi dependency → rakit schema → `prisma db push` → sinkron katalog.
-- `yarn db:seed` — buat role default (`admin`/`user`) + admin user.
+- `bun run db:sync` — validasi dependency → rakit schema → `prisma db push` → sinkron katalog.
+- `bun run db:seed` — buat role default (`admin`/`user`) + admin user.
 
 ## Alur/Mekanisme
 
 ```
-yarn db:sync
+bun run db:sync
    │
    ├─ validateDependencies()           ← modul enable tapi dependency disable → error jelas
    ├─ assembleSchema()                 ← prisma/base/{driver}.prisma + fragmen db/*.prisma modul AKTIF
@@ -47,13 +47,13 @@ model Session { id String @id @default(cuid()) /* ... */ }
 ### Langkah 2: Jalankan sinkronisasi
 
 ```bash
-yarn db:sync
-yarn db:seed
+bun run db:sync
+bun run db:seed
 ```
 
 ### Langkah 3: Aktif/nonaktifkan modul
 
-Ubah `enabled` di `src/registry/module.registry.ts`, lalu `yarn db:sync` lagi.
+Ubah `enabled` di `src/registry/module.registry.ts`, lalu `bun run db:sync` lagi.
 
 ```ts
 { name: 'welcome', enabled: false, path: '../modules/welcome/module.js', dependsOn: ['auth'] }
@@ -91,9 +91,9 @@ export function assembleSchema(): AssembleResult {
 
 ## Verifikasi
 
-1. `yarn db:sync` → tabel & menu modul aktif ada di DB.
-2. Nonaktifkan sebuah modul menu → `yarn db:sync` → outputnya `removed menus: ...`; baris menu hilang; jika modul punya fragmen, tabelnya juga hilang.
-3. Aktifkan kembali → `yarn db:sync && yarn db:seed` → tabel & menu kembali.
+1. `bun run db:sync` → tabel & menu modul aktif ada di DB.
+2. Nonaktifkan sebuah modul menu → `bun run db:sync` → outputnya `removed menus: ...`; baris menu hilang; jika modul punya fragmen, tabelnya juga hilang.
+3. Aktifkan kembali → `bun run db:sync && bun run db:seed` → tabel & menu kembali.
 
 ## Catatan
 

@@ -13,7 +13,7 @@ See @.claude/rules/documentation.md for what counts as "fundamental" and tutoria
 
 - [ ] Code change is complete and working
 - [ ] All tests pass (if applicable)
-- [ ] Code is lint/format clean (`yarn lint`, `yarn format`)
+- [ ] Code is lint/format clean (`bun run lint`, `bun run format`)
 - [ ] Determine tutorial file name: `tutorial/NN-{topic-in-indonesian}.md`
 - [ ] Create tutorial file with all sections from the template in @.claude/rules/documentation.md
   - [ ] **Tujuan** (one-line goal)

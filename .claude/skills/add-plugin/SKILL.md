@@ -269,9 +269,9 @@ For core plugins, always use `fp()`.
 ## Testing a Plugin
 
 1. Add a simple decorator: `fastify.decorate('test', () => 'works')`
-2. Restart server: `yarn dev`
+2. Restart server: `bun run dev`
 3. Use it: `this.fastify.test()` (should return `'works'`)
 4. Check server logs for any errors during initialization
-5. Run `yarn lint` and `yarn format`
+5. Run `bun run lint` and `bun run format`
 
 For complete details, see the source tutorial.

@@ -6,7 +6,7 @@
  *     then `prisma db push --accept-data-loss` so disabled modules' tables are DROPPED.
  *  3. Sync the menu/permission catalog bidirectionally (upsert enabled, remove disabled).
  *
- * Run with: yarn db:sync
+ * Run with: bun run db:sync
  */
 import { spawnSync } from 'node:child_process'
 import env from '../src/core/config/env.config.js'
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
     console.log('  Running: prisma db push --accept-data-loss\n')
 
     const push = spawnSync(
-      `npx prisma db push --schema "${result.schemaPath}" --accept-data-loss`,
+      `bunx prisma db push --schema "${result.schemaPath}" --accept-data-loss`,
       { stdio: 'inherit', shell: true }
     )
     if (push.status !== 0) {

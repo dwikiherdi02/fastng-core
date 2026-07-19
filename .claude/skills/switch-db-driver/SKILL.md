@@ -15,7 +15,7 @@ DB_DRIVER=sqlite
 DATABASE_URL=file:./prisma/dev.db
 ```
 
-Run: `yarn dev`
+Run: `bun run dev`
 
 ## MySQL
 
@@ -43,15 +43,15 @@ Replace `user`, `password`, `localhost`, `3306`, and `fastng_db` with your actua
 **Step 3:** Generate Prisma client and apply schema:
 
 ```bash
-yarn db:generate
-yarn db:migrate
-# or yarn db:push for dev
+bun run db:generate
+bun run db:migrate
+# or bun run db:push for dev
 ```
 
 **Step 4:** Start the server:
 
 ```bash
-yarn dev
+bun run dev
 ```
 
 Check logs: `[DB] Connected to MySQL`
@@ -80,15 +80,15 @@ DATABASE_URL=postgresql://user:password@localhost:5432/fastng_db
 **Step 3:** Generate and migrate:
 
 ```bash
-yarn db:generate
-yarn db:migrate
-# or yarn db:push
+bun run db:generate
+bun run db:migrate
+# or bun run db:push
 ```
 
 **Step 4:** Start:
 
 ```bash
-yarn dev
+bun run dev
 ```
 
 Check logs: `[DB] Connected to PostgreSQL`
@@ -114,7 +114,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster-name.mongodb.net/fastng_db?r
 **Step 2:** Start the server:
 
 ```bash
-yarn dev
+bun run dev
 ```
 
 **No migration needed.** Mongoose auto-creates collections. Check logs: `[DB] Connected to MongoDB`
@@ -133,21 +133,21 @@ yarn dev
 
 | Command | Use Case | Creates Migration File | Good For |
 |---|---|---|---|
-| `yarn db:push` | Local dev, prototyping | No | Rapid iteration (no history) |
-| `yarn db:migrate` | Production, CI/CD | Yes | Version control, rollback safety |
-| `yarn db:studio` | GUI-based DB admin | N/A | Manual schema edits, viewing data |
+| `bun run db:push` | Local dev, prototyping | No | Rapid iteration (no history) |
+| `bun run db:migrate` | Production, CI/CD | Yes | Version control, rollback safety |
+| `bun run db:studio` | GUI-based DB admin | N/A | Manual schema edits, viewing data |
 
-**Development**: Use `yarn db:push`.  
-**Production**: Always use `yarn db:migrate` to create timestamped migration files.
+**Development**: Use `bun run db:push`.  
+**Production**: Always use `bun run db:migrate` to create timestamped migration files.
 
 ## Verifying the Switch
 
-1. Restart server: `yarn dev`
+1. Restart server: `bun run dev`
 2. Check logs for `[DB] Connected to {driver name}`
 3. Open Swagger UI at `http://localhost:3000/docs`
 4. Test a simple endpoint (e.g., `GET /api/v1/welcome`)
 5. Create a user via login/register to confirm writes work
-6. Run `yarn lint` and `yarn format` to ensure no code changes are needed (the repository factory pattern handles driver switching, so application code stays the same)
+6. Run `bun run lint` and `bun run format` to ensure no code changes are needed (the repository factory pattern handles driver switching, so application code stays the same)
 
 ## Transparent to Application Code
 

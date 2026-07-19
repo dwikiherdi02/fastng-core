@@ -4,7 +4,7 @@
 
 **Kapan digunakan**: Memahami alur login/refresh/logout baru, atau menambah fitur "logout dari perangkat lain".
 
-**Prasyarat**: Modul `auth` aktif; `yarn db:sync` + `yarn db:seed` sudah dijalankan.
+**Prasyarat**: Modul `auth` aktif; `bun run db:sync` + `bun run db:seed` sudah dijalankan.
 
 ## Pengenalan
 

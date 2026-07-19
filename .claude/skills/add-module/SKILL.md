@@ -37,7 +37,7 @@ model Post {
 }
 ```
 
-Run: `yarn db:generate` (updates Prisma client), then `yarn db:push` (applies to dev DB).
+Run: `bun run db:generate` (updates Prisma client), then `bun run db:push` (applies to dev DB).
 
 **For MongoDB (if using Mongoose):**
 
@@ -473,10 +473,10 @@ const modules: ModuleConfig[] = [
 
 ### Step 10: Test
 
-1. Restart the server: `yarn dev`
+1. Restart the server: `bun run dev`
 2. Check logs for `[ModuleLoader] Loading module: posts`
 3. Navigate to `http://localhost:3000/docs` (Swagger UI)
 4. Test your endpoints
-5. Run `yarn lint` and `yarn format` to clean up code
+5. Run `bun run lint` and `bun run format` to clean up code
 
 For full code samples and more details, see the source tutorial.

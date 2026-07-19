@@ -160,7 +160,7 @@ Untuk development awal, selalu gunakan `db:push`. Untuk production, gunakan `db:
 ## Perhatian saat Ganti Driver
 
 - **Data tidak ikut pindah** — ganti driver berarti mulai dengan database kosong
-- Pastikan service database (MySQL/PostgreSQL/MongoDB) sudah running sebelum `yarn dev`
+- Pastikan service database (MySQL/PostgreSQL/MongoDB) sudah running sebelum `bun run dev`
 - `DATABASE_URL` wajib diisi untuk semua Prisma driver (sqlite, mysql, postgresql)
 - `MONGODB_URI` wajib untuk MongoDB
 - Setelah ganti schema Prisma, selalu jalankan `npm run db:generate` sebelum `npm run dev`

@@ -15,7 +15,7 @@ export interface SeedSummary {
  *  - `user`  — `can_access` on menus that expose it.
  * Plus a default admin user (SEED_ADMIN_* env). Fully idempotent.
  *
- * Run AFTER `yarn db:sync` so the menu/permission catalog already exists.
+ * Run AFTER `bun run db:sync` so the menu/permission catalog already exists.
  */
 export async function seedRoles(repo: ICatalogSyncRepository): Promise<SeedSummary> {
   const menus = await repo.listMenusWithPermissions()

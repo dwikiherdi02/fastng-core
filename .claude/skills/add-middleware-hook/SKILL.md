@@ -202,9 +202,9 @@ Use `preHandler` for authorization because errors from earlier hooks don't go th
 ## Testing
 
 1. Add a hook that logs something: `fastify.log.info('Hook executed')`
-2. Restart server: `yarn dev`
+2. Restart server: `bun run dev`
 3. Make a request: `curl http://localhost:3000/api/v1/posts`
 4. Check logs for your hook's message
-5. Run `yarn format` to clean up code
+5. Run `bun run format` to clean up code
 
 For complete details, see the source tutorial.

@@ -204,7 +204,7 @@ await app.register(emailPlugin)
 
 ## Testing
 
-1. Restart server: `yarn dev`
+1. Restart server: `bun run dev`
 2. Check logs for validation errors or success messages
 3. Verify the var is accessible: `fastify.config.SMTP_HOST`
 4. Remove a required var from `.env` and restart — should fail with a clear error message

@@ -1,6 +1,8 @@
 # Conventions: Tooling, Naming, and Service Composition
 
-> **v2.0.0 additions**: new scripts `yarn db:sync` (assemble per-module schema from enabled modules → `prisma db push` → sync menu/permission catalog) and `yarn db:seed` (default roles + admin user, from `SEED_ADMIN_*` env). CLI entry points live in `scripts/db-sync.ts` and `scripts/db-seed.ts` (run via `tsx`, outside `src/` so `tsc` build ignores them). `DB_DRIVER` now also accepts `sqlserver`. New file conventions: `{name}.manifest.ts` (module menu/permission manifest) and `db/{name}.prisma` (module schema fragment). See `tutorial/18`–`tutorial/21`.
+> **v3.1.0 additions**: package manager and dev/CLI runtime switched from **Yarn + Node/tsx** to **Bun**. `bun install` replaces `yarn install`; `bun run <script>` replaces `yarn <script>`; `dev`/`db:sync`/`db:seed` now run directly via Bun's native TypeScript/ESM support (the `tsx` devDependency was removed). `build` is unchanged (`tsc` → `dist/`), and `start` now executes the compiled output with `bun` instead of `node`. See `tutorial/25-migrasi-yarn-ke-bun.md`.
+
+> **v2.0.0 additions**: new scripts `db:sync` (assemble per-module schema from enabled modules → `prisma db push` → sync menu/permission catalog) and `db:seed` (default roles + admin user, from `SEED_ADMIN_*` env). CLI entry points live in `scripts/db-sync.ts` and `scripts/db-seed.ts`, outside `src/` so `tsc` build ignores them. `DB_DRIVER` now also accepts `sqlserver`. New file conventions: `{name}.manifest.ts` (module menu/permission manifest) and `db/{name}.prisma` (module schema fragment). See `tutorial/18`–`tutorial/21`.
 
 ## Technology Stack & Tooling
 
@@ -9,8 +11,8 @@
 | TypeScript | 5.x, strict mode, NodeNext ESM |
 | Node.js | >=20 |
 | Fastify | 5.x |
-| Runtime | Node.js (dev: `tsx`, prod: compiled `tsc` output) |
-| Package manager | **yarn** (not npm) |
+| Runtime | Bun (dev/CLI scripts run natively via Bun; prod `start` runs compiled `tsc` output via `bun`) |
+| Package manager | **Bun** (not yarn/npm) |
 | Code formatter | Prettier |
 | Linter | ESLint (flat config, `typescript-eslint` recommended) |
 
@@ -52,7 +54,7 @@ What this means:
 - 100-character line width
 - 2-space indentation
 
-Run: `yarn format`
+Run: `bun run format`
 
 ### ESLint
 
@@ -62,39 +64,39 @@ Run: `yarn format`
 - Disabled: `no-console` (logging is allowed)
 - Warning: `@typescript-eslint/no-unused-vars` (ignore `_`-prefixed variables)
 
-Run: `yarn lint`
+Run: `bun run lint`
 
-## Package Manager: Yarn
+## Package Manager: Bun
 
-This project uses **yarn**, not npm.
+This project uses **Bun**, not yarn/npm.
 
 | Action | Command |
 |---|---|
-| Install dependencies | `yarn install` (or just `yarn`) |
-| Add package | `yarn add {package}` |
-| Remove package | `yarn remove {package}` |
-| Run dev server | `yarn dev` |
-| Build | `yarn build` |
-| Start (prod) | `yarn start` |
-| Database commands | `yarn db:generate`, `yarn db:migrate`, `yarn db:push` |
-| Lint | `yarn lint` |
-| Format | `yarn format` |
-| Security audit | `yarn audit --level high` |
+| Install dependencies | `bun install` (or just `bun i`) |
+| Add package | `bun add {package}` |
+| Remove package | `bun remove {package}` |
+| Run dev server | `bun run dev` |
+| Build | `bun run build` |
+| Start (prod) | `bun run start` |
+| Database commands | `bun run db:generate`, `bun run db:migrate`, `bun run db:push` |
+| Lint | `bun run lint` |
+| Format | `bun run format` |
+| Security audit | `bun audit --audit-level=high` |
 
 ### Key Scripts (from `package.json`)
 
 ```json
 {
   "scripts": {
-    "dev": "node --env-file=.env --import tsx/esm --watch src/server.ts",
-    "start": "node --env-file=.env dist/server.js",
+    "dev": "bun --env-file=.env --watch src/server.ts",
+    "start": "bun --env-file=.env dist/server.js",
     "build": "tsc",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "lint": "eslint src/",
     "format": "prettier --write src/",
-    "audit": "yarn audit --level high"
+    "audit": "bun audit --audit-level=high"
   }
 }
 ```
@@ -271,6 +273,6 @@ These cover the same architecture but are for PR-review feedback. Keep this Clau
 
 ## No Test Framework (Yet)
 
-`ARCHITECTURE.md` lists `vitest` and `supertest` as the intended testing stack, but they are **not installed** in the current `package.json`. Do not assume `yarn test`, `vitest`, or `supertest` commands exist. Before suggesting or using a test command, check `package.json` to confirm the framework is actually present.
+`ARCHITECTURE.md` lists `vitest` and `supertest` as the intended testing stack, but they are **not installed** in the current `package.json`. Do not assume `bun test`, `vitest`, or `supertest` commands are wired to a configured test suite. Before suggesting or using a test command, check `package.json` to confirm the framework is actually present.
 
 For complete references and code examples, see `tutorial/13-aturan-arsitektur.md` and `tutorial/15-service-in-service.md` (Indonesian).

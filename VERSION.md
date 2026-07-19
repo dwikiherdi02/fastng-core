@@ -1,7 +1,7 @@
 ﻿# FastNG Changelog
 
-**Current Version**: 3.0.0  
-**Last Updated**: 2026-07-12
+**Current Version**: 3.1.0
+**Last Updated**: 2026-07-19
 
 For semantic versioning rules, guidelines, and commit format, see @.claude/rules/versioning.md.
 
@@ -12,7 +12,7 @@ For semantic versioning rules, guidelines, and commit format, see @.claude/rules
 Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
 
 ### Added
-- Configurable API docs: `DOC_PROVIDER` env var (`swagger` default | `scalar`) selects the docs UI renderer, and `DOC_PATH` (default `/docs`, must start with `/`) customizes the path (tutorial: tutorial/24-integrasi-docs-scalar.md)
+- (none yet)
 
 ### Changed
 - (none yet)
@@ -25,6 +25,21 @@ Changes listed here are uncommitted. Once committed, they will be moved to a ver
 
 ### Security
 - (none yet)
+
+---
+
+## [3.1.0] — 2026-07-19
+
+**Refactor code structure for improved readability and maintainability**
+
+### Added
+- Configurable API docs: `DOC_PROVIDER` env var (`swagger` default | `scalar`) selects the docs UI renderer, and `DOC_PATH` (default `/docs`, must start with `/`) customizes the path (tutorial: tutorial/24-integrasi-docs-scalar.md)
+
+### Changed
+- Package manager & dev/CLI runtime switched from Yarn + Node/`tsx` to **Bun**: `bun install` replaces `yarn install`, `bun run <script>` replaces `yarn <script>`, `dev`/`db:sync`/`db:seed` run natively via Bun (the `tsx` devDependency was removed), `start` executes compiled output via `bun` instead of `node`, and `audit` now runs `bun audit --audit-level=high`. `build` (`tsc`) is unchanged. `yarn.lock` replaced by `bun.lock` (tutorial: tutorial/25-migrasi-yarn-ke-bun.md)
+
+### Fixed
+- Added a Bun preload shim (`scripts/bun-v8-compat.ts`, registered via `bunfig.toml`) that no-ops `v8.startupSnapshot.isBuildingSnapshot()` — without it, Bun 1.3.14 crashes with `NotImplementedError` on any command importing `src/core/database/index.ts` (i.e. `dev`/`start`/`db:sync`/`db:seed`), because the statically-imported Mongoose driver transitively loads `bson`, whose static initializer calls that unimplemented API. Upstream Bun limitation, not a FastNG bug (tutorial: tutorial/25-migrasi-yarn-ke-bun.md)
 
 ---
 

@@ -20,7 +20,7 @@ FastNG menggunakan `@fastify/schedule` yang dibungkus dalam plugin `schedule.plu
 Package `@fastify/schedule` dan `toad-scheduler` sudah terinstall secara otomatis saat Anda menjalankan:
 
 ```bash
-yarn add @fastify/schedule toad-scheduler
+bun add @fastify/schedule toad-scheduler
 ```
 
 Plugin `schedule.plugin.ts` sudah terdaftar di `src/app.ts` dan akan otomatis di-register saat server start.
@@ -354,7 +354,7 @@ Scheduler akan skip registration dan tidak akan menjalankan job apa pun.
 
 1. **Start development server:**
    ```bash
-   yarn dev
+   bun run dev
    ```
 
 2. **Check logs untuk melihat job registration:**

@@ -4,7 +4,7 @@
 
 **Kapan digunakan**: Saat admin perlu memberi/mencabut satu permission untuk satu user tertentu tanpa mengubah role-nya.
 
-**Prasyarat**: RBAC dinamis (`tutorial/17`) sudah dipahami; `yarn db:sync` + `yarn db:seed` sudah dijalankan.
+**Prasyarat**: RBAC dinamis (`tutorial/17`) sudah dipahami; `bun run db:sync` + `bun run db:seed` sudah dijalankan.
 
 ## Pengenalan
 

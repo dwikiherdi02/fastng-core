@@ -29,7 +29,7 @@ route schema  ──> @fastify/swagger (fastify.swagger())  ──> spec OpenAPI
 ### Langkah 1: Dependency
 
 ```bash
-yarn add @fastify/swagger @fastify/swagger-ui @scalar/fastify-api-reference
+bun add @fastify/swagger @fastify/swagger-ui @scalar/fastify-api-reference
 ```
 
 ### Langkah 2: Env var
@@ -89,7 +89,7 @@ Penting: untuk Scalar, `content` berupa **fungsi** agar dievaluasi setelah semua
 
 ## Verifikasi
 
-1. `yarn dev`, buka `http://localhost:3000/docs`.
+1. `bun run dev`, buka `http://localhost:3000/docs`.
    - Default (`DOC_PROVIDER=swagger`) → tampil **Swagger UI**.
    - Set `DOC_PROVIDER=scalar` lalu restart → tampil **Scalar API Reference**.
 2. Endpoint tiap modul (auth, users, roles, menus, permissions) muncul dengan tag dan skema request/response.

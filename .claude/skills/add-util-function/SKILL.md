@@ -233,6 +233,6 @@ Keep one concern per file for clarity and reusability.
 2. Import it in a service or controller
 3. Use it: `const slug = slugify('Hello World')`
 4. Verify the output
-5. Run `yarn lint` and `yarn format`
+5. Run `bun run lint` and `bun run format`
 
 For complete details, see the source tutorial.

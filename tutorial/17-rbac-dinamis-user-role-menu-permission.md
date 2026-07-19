@@ -6,7 +6,7 @@
 
 **Kapan digunakan**: Saat Anda perlu membatasi akses endpoint berdasarkan permission spesifik (`create`, `read`, `update`, `delete`, `export`, `can_access`, dst.) yang bisa berbeda untuk tiap menu/modul, dan bisa diubah admin tanpa migrasi schema.
 
-**Prasyarat**: Modul `auth` aktif; database sudah di-`yarn db:sync` dan di-`yarn db:seed`.
+**Prasyarat**: Modul `auth` aktif; database sudah di-`bun run db:sync` dan di-`bun run db:seed`.
 
 ## Pengenalan
 
@@ -48,8 +48,8 @@ export const manifest: ModuleManifest = {
 ### Langkah 2: Sinkronkan katalog & seed role
 
 ```bash
-yarn db:sync   # membuat menu + menu_permissions dari manifest
-yarn db:seed   # membuat role admin (semua permission) & user (can_access) + admin user
+bun run db:sync   # membuat menu + menu_permissions dari manifest
+bun run db:seed   # membuat role admin (semua permission) & user (can_access) + admin user
 ```
 
 ### Langkah 3: Lindungi route dengan guard `authorize`

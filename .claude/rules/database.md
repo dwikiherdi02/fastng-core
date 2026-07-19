@@ -5,7 +5,7 @@
 > **v2.0.0 updates** (see `tutorial/18`, `tutorial/21`):
 > - **Fifth driver**: `sqlserver` (SQL Server 2017+) joins `sqlite`/`mysql`/`postgresql`/`mongodb`. `DB_DRIVER` enum in `env.config.ts` includes it; base block at `prisma/base/sqlserver.prisma`.
 > - **Per-module schema**: each module owns `src/modules/{name}/db/{name}.prisma` (only `model` blocks). `src/core/database/schema-builder.ts` assembles `prisma/schema.prisma` from `prisma/base/{driver}.prisma` + enabled modules' fragments. **`prisma/schema.prisma` is auto-generated — do not edit by hand.** Fragments must be self-contained (no cross-module `@relation`; use scalar FK columns). The old `schema.mysql.prisma`/`schema.postgresql.prisma` copies are gone.
-> - **Migration workflow**: `yarn db:sync` (validate deps → assemble → `prisma db push --accept-data-loss` → sync menu/permission catalog) and `yarn db:seed` (default roles + admin user). Disabling a module drops its tables and removes its catalog rows (bidirectional). For mongodb, `db:sync` runs catalog sync only.
+> - **Migration workflow**: `bun run db:sync` (validate deps → assemble → `prisma db push --accept-data-loss` → sync menu/permission catalog) and `bun run db:seed` (default roles + admin user). Disabling a module drops its tables and removes its catalog rows (bidirectional). For mongodb, `db:sync` runs catalog sync only.
 > - **Auth schema**: `RefreshToken` replaced by `sessions` (SHA-256-hashed opaque tokens); added RBAC tables (`roles`, `user_roles`, `menus`, `permissions`, `menu_permissions`, `role_menu_permissions`). Catalog sync lives in `src/core/database/sync/`; RBAC reads in `src/core/rbac/rbac.reader.ts`.
 
 ## Dual-Driver Model
@@ -25,7 +25,7 @@ All three use Prisma with a single schema file at `src/prisma/schema.prisma`. Re
 - `src/prisma/schema.mysql.prisma`
 - `src/prisma/schema.postgresql.prisma`
 
-To switch between them, copy the target variant over `schema.prisma`, then run `yarn db:generate` and `yarn db:push` (or `yarn db:migrate`).
+To switch between them, copy the target variant over `schema.prisma`, then run `bun run db:generate` and `bun run db:push` (or `bun run db:migrate`).
 
 ### MongoDB
 
@@ -227,11 +227,11 @@ For MongoDB multi-document atomicity, rely on either:
 
 | Command | Use Case | Creates Migration File | Rollback Support |
 |---|---|---|---|
-| `yarn db:push` | Local development, prototyping | No | No |
-| `yarn db:migrate` | Production deployments | Yes | Yes |
+| `bun run db:push` | Local development, prototyping | No | No |
+| `bun run db:migrate` | Production deployments | Yes | Yes |
 
-**Development**: `yarn db:push` is faster and simpler.  
-**Production**: Always use `yarn db:migrate` to create migration files for version control and rollback safety.
+**Development**: `bun run db:push` is faster and simpler.  
+**Production**: Always use `bun run db:migrate` to create migration files for version control and rollback safety.
 
 ## Environment Variables
 

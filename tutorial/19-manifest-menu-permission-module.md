@@ -61,7 +61,7 @@ menu: { code: 'user_roles', name: 'Roles', parent: 'user_management', path: '/us
 ### Langkah 2: Sinkronkan
 
 ```bash
-yarn db:sync   # menu + menu_permissions dibuat/diperbarui/dihapus
+bun run db:sync   # menu + menu_permissions dibuat/diperbarui/dihapus
 ```
 
 ### Langkah 3: Manfaatkan permission di route
@@ -94,7 +94,7 @@ export interface ModuleManifest {
 
 ## Verifikasi
 
-1. Tambah/ubah manifest → `yarn db:sync` → cek output `upserted menus: ...`.
+1. Tambah/ubah manifest → `bun run db:sync` → cek output `upserted menus: ...`.
 2. Untuk modul menu, `GET /api/v1/auth/me/menus` menampilkannya (jika role punya `can_access`).
 
 ## Referensi Kode Aktual

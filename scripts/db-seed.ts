@@ -2,8 +2,8 @@
  * Seed default roles (admin/user), their grants, and a default admin user so the
  * starter kit is usable immediately. Idempotent.
  *
- * Run AFTER `yarn db:sync` (the menu/permission catalog must already exist).
- * Run with: yarn db:seed
+ * Run AFTER `bun run db:sync` (the menu/permission catalog must already exist).
+ * Run with: bun run db:seed
  */
 import env from '../src/core/config/env.config.js'
 

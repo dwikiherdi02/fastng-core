@@ -49,11 +49,11 @@ Query lintas tabel dilakukan step-wise (bukan include relasi) di core/rbac/rbac.
 2. Set `dependsOn` modul Anda ke modul yang tabelnya Anda referensikan (untuk urutan + validasi enable).
 3. Untuk baca lintas tabel, lakukan query bertahap (resolve id per langkah), lihat `MenuPrismaRepository.listCatalog()` sebagai contoh.
 4. Untuk hapus yang harus cascade lintas modul, gunakan `withTransaction` di service.
-5. `yarn db:sync` + `yarn db:seed`.
+5. `bun run db:sync` + `bun run db:seed`.
 
 ## Verifikasi
 
-1. `yarn db:sync` merakit skema dari semua fragmen tanpa error.
+1. `bun run db:sync` merakit skema dari semua fragmen tanpa error.
 2. Nonaktifkan modul `role` → `auth`/`users` gagal validasi dependency dengan pesan jelas.
 3. `GET /api/v1/menus` dan `/permissions` mengembalikan katalog dari modul menu/permission.
 
