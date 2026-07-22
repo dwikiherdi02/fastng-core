@@ -14,10 +14,7 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW: z.string().default('1 minute'),
   CORS_ORIGIN: z.string().default('*'),
   DOC_PROVIDER: z.enum(['scalar', 'swagger']).default('swagger'),
-  DOC_PATH: z
-    .string()
-    .regex(/^\//, 'DOC_PATH must start with a "/"')
-    .default('/docs'),
+  DOC_PATH: z.string().regex(/^\//, 'DOC_PATH must start with a "/"').default('/docs'),
   SCHEDULER_ENABLED: z.boolean().default(true),
   SEED_ADMIN_EMAIL: z.string().email().default('admin@fastng.local'),
   SEED_ADMIN_USERNAME: z.string().default('admin'),

@@ -53,10 +53,10 @@ export class UserPrismaRepository implements IUserRepository {
     return toEntity(record, roles)
   }
 
-  async findAll({
-    page = 1,
-    limit = 20,
-  }: { page?: number; limit?: number } = {}): Promise<{ items: UserEntity[]; total: number }> {
+  async findAll({ page = 1, limit = 20 }: { page?: number; limit?: number } = {}): Promise<{
+    items: UserEntity[]
+    total: number
+  }> {
     const skip = (page - 1) * limit
     const [records, total] = await Promise.all([
       this.prisma.user.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' } }),

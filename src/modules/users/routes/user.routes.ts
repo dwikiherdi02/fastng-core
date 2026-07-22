@@ -46,7 +46,9 @@ export default async function userRoutes(
   controller: UserController
 ): Promise<void> {
   const auth = { preHandler: [fastify.authenticate] }
-  const canRead = { preHandler: [fastify.authenticate, fastify.authorize('user_management', 'read')] }
+  const canRead = {
+    preHandler: [fastify.authenticate, fastify.authorize('user_management', 'read')],
+  }
   const canUpdate = {
     preHandler: [fastify.authenticate, fastify.authorize('user_management', 'update')],
   }
@@ -73,7 +75,9 @@ export default async function userRoutes(
   fastify.get('/:id/permissions', { schema: getUserPermsSchema, ...canRead }, (req, rep) =>
     controller.getPermissions(req, rep)
   )
-  fastify.put('/:id/permissions', { schema: setUserPermissionsRouteSchema, ...canUpdate }, (req, rep) =>
-    controller.setPermissions(req, rep)
+  fastify.put(
+    '/:id/permissions',
+    { schema: setUserPermissionsRouteSchema, ...canUpdate },
+    (req, rep) => controller.setPermissions(req, rep)
   )
 }

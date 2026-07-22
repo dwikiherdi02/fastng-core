@@ -190,7 +190,7 @@ enum Role {
 }
 ```
 
-2. Push schema: `npm run db:push`
+2. Jalankan migrasi: `bun run migrate`
 
 3. Tambah guard di plugin:
 

@@ -1,0 +1,56 @@
+// Base block for DB_DRIVER=sqlite. Contains only generator + datasource.
+// Module table definitions are appended from each enabled module's db/*.prisma fragment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Schema fragment owned by the `auth` module (users + the user-side RBAC pivots).
+// Cross-module FKs (role_id, menu_permission_id) are scalar columns (no @relation);
+// cascades to sessions/role-grants are handled in the service layer.
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  roles               UserRole[]
+  permissionOverrides UserMenuPermission[]
+
+  @@map("users")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// User-level permission override (allow/deny) on top of role grants.
+model UserMenuPermission {
+  id               String @id @default(cuid())
+  userId           String @map("user_id")
+  menuPermissionId String @map("menu_permission_id")
+  effect           String @default("allow") // 'allow' | 'deny'
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, menuPermissionId])
+  @@index([menuPermissionId])
+  @@map("user_menu_permissions")
+}

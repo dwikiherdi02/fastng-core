@@ -1,0 +1,13 @@
+{
+  "table": "users",
+  "uniqueBy": ["email"],
+  "order": 1,
+  "rows": [
+    {
+      "username": { "$env": "SEED_ADMIN_USERNAME" },
+      "email": { "$env": "SEED_ADMIN_EMAIL" },
+      "password": { "$hash": { "$env": "SEED_ADMIN_PASSWORD" } },
+      "is_active": true
+    }
+  ]
+}

@@ -27,7 +27,7 @@ DATABASE_URL=file:./dev.db
 
 **Jalankan:**
 ```bash
-npm run db:push
+bun run migrate
 npm run dev
 ```
 
@@ -55,8 +55,8 @@ Ganti `user`, `password`, dan `FastNG_db` sesuai konfigurasi MySQL kamu.
 ### Langkah 3 — Generate Prisma Client dan push schema
 
 ```bash
-npm run db:generate
-npm run db:push
+bun run migrate
+bun run db:seed
 ```
 
 ### Langkah 4 — Jalankan server
@@ -87,8 +87,8 @@ DATABASE_URL=postgresql://user:password@localhost:5432/FastNG_db
 ### Langkah 3 — Generate dan push
 
 ```bash
-npm run db:generate
-npm run db:push
+bun run migrate
+bun run db:seed
 ```
 
 Log konfirmasi: `[DB] Connected to PostgreSQL`
@@ -115,7 +115,7 @@ MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/FastNG_db
 npm run dev
 ```
 
-Tidak perlu `npm run db:push` — Mongoose membuat collection otomatis saat data pertama dimasukkan.
+Tidak perlu `bun run migrate` — Mongoose membuat collection otomatis saat data pertama dimasukkan.
 
 Log konfirmasi: `[DB] Connected to MongoDB`
 
@@ -145,15 +145,16 @@ Factory ini dipanggil di `module.js` saat modul di-register. Kamu tidak perlu me
 
 ---
 
-## `db:push` vs `db:migrate`
+## Perintah database setelah berganti driver
 
 | Perintah | Kapan digunakan |
 |---|---|
-| `npm run db:push` | Development — langsung apply tanpa history migrasi |
-| `npm run db:migrate` | Production — buat file migrasi SQL, ada history rollback |
-| `npm run db:studio` | Buka GUI database browser di browser |
+| `bun run migrate` | Rakit schema untuk driver baru, buat & jalankan migrasi, sinkron katalog |
+| `bun run migrate:fresh -- --seed` | Bangun ulang database dari nol lalu seed — langkah biasa setelah ganti driver |
+| `bun run migrate:status` | Lihat migrasi mana yang sudah jalan beserta batch-nya |
+| `bunx prisma studio` | Buka GUI database browser |
 
-Untuk development awal, selalu gunakan `db:push`. Untuk production, gunakan `db:migrate` agar ada trail perubahan schema.
+**Penting**: SQL migrasi bersifat driver-specific dan disimpan **per modul** (`src/modules/{name}/db/migrations/`). Migrasi yang dibuat untuk SQLite tidak bisa diterapkan ke MySQL/PostgreSQL — setelah berganti driver, hapus folder `db/migrations/` di **setiap** modul lalu jalankan `bun run migrate` dari awal. Detail lengkap di `tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md`.
 
 ---
 

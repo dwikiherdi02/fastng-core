@@ -69,6 +69,8 @@ export class UserController {
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
     }
-    reply.send(successResponse(await this.service.setPermissionOverrides(id, parsed.data.overrides)))
+    reply.send(
+      successResponse(await this.service.setPermissionOverrides(id, parsed.data.overrides))
+    )
   }
 }

@@ -1,20 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import env from '../config/env.config.js'
 import modules from '../../registry/module.registry.js'
 import { validateDependencies } from '../../registry/dependency-validator.js'
-
-/** Walk up from this file until we find the directory containing package.json (the project root). */
-function findProjectRoot(): string {
-  let dir = path.dirname(fileURLToPath(import.meta.url))
-  while (!fs.existsSync(path.join(dir, 'package.json'))) {
-    const parent = path.dirname(dir)
-    if (parent === dir) throw new Error('Could not locate project root (package.json not found).')
-    dir = parent
-  }
-  return dir
-}
+import { findProjectRoot } from '../utils/project-root.js'
 
 export interface AssembleResult {
   driver: string
@@ -56,7 +45,11 @@ export function assembleSchema(): AssembleResult {
     if (!mod.enabled) continue
     const fragmentPath = path.join(root, 'src', 'modules', mod.name, 'db', `${mod.name}.prisma`)
     if (!fs.existsSync(fragmentPath)) continue
-    parts.push('', `// ===== module: ${mod.name} =====`, fs.readFileSync(fragmentPath, 'utf8').trim())
+    parts.push(
+      '',
+      `// ===== module: ${mod.name} =====`,
+      fs.readFileSync(fragmentPath, 'utf8').trim()
+    )
     includedModules.push(mod.name)
   }
 

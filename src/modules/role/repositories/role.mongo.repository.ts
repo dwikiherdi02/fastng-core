@@ -77,7 +77,10 @@ export class RoleMongoRepository implements IRoleRepository {
       { _id: roleId },
       {
         $set: {
-          menu_permissions: grants.map((g) => ({ menu_code: g.menuCode, permissions: g.permissions })),
+          menu_permissions: grants.map((g) => ({
+            menu_code: g.menuCode,
+            permissions: g.permissions,
+          })),
         },
       }
     )

@@ -1,0 +1,45 @@
+// Base block for DB_DRIVER=sqlite. Contains only generator + datasource.
+// Module table definitions are appended from each enabled module's db/*.prisma fragment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Schema fragment owned by the `menu` module (sidebar menus + per-menu permission catalog).
+// `menu_permissions.permission_id` is a scalar FK to the permission module (no @relation).
+
+model Menu {
+  id         String   @id @default(cuid())
+  parentId   String?  @map("parent_id")
+  code       String   @unique
+  name       String
+  icon       String?
+  path       String?
+  orderIndex Int      @default(0) @map("order_index")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  parent          Menu?            @relation("MenuTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Menu[]           @relation("MenuTree")
+  menuPermissions MenuPermission[]
+
+  @@map("menus")
+}
+
+model MenuPermission {
+  id           String @id @default(cuid())
+  menuId       String @map("menu_id")
+  permissionId String @map("permission_id")
+
+  menu Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@unique([menuId, permissionId])
+  @@index([permissionId])
+  @@map("menu_permissions")
+}

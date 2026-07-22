@@ -1,0 +1,31 @@
+// Base block for DB_DRIVER=sqlite. Contains only generator + datasource.
+// Module table definitions are appended from each enabled module's db/*.prisma fragment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Schema fragment owned by the `session` module (opaque refresh-token sessions).
+// `sessions.user_id` is a scalar FK to the auth module (no @relation) to keep the
+// fragment self-contained and the dependsOn graph acyclic.
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  accessTokenJti   String   @map("access_token_jti")
+  deviceInfo       String?  @map("device_info")
+  ipAddress        String?  @map("ip_address")
+  isRevoked        Boolean  @default(false) @map("is_revoked")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  lastUsedAt       DateTime @default(now()) @map("last_used_at")
+
+  @@index([userId])
+  @@map("sessions")
+}

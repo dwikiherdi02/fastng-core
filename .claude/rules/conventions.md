@@ -1,5 +1,7 @@
 # Conventions: Tooling, Naming, and Service Composition
 
+> **v4.0.0 additions** (see `tutorial/26`): scripts `db:push` and `db:migrate` are **removed**. Schema work goes through `migrate` / `migrate:install` / `migrate:status` / `migrate:rollback` / `migrate:reset` / `migrate:refresh` / `migrate:fresh` (CLI at `scripts/migrate.ts`, logic in `src/core/database/migration/`) — **each module keeps its own migration history** in `src/modules/{name}/db/migrations/`, diffed from that module's own fragment, never combined. `db:sync` now only reconciles the menu/permission catalog. `db:seed` runs each enabled module's `seeders/` (`--module=` / `--class=`). New file conventions: `{table}.json` (static seed rows, the default) and `{what}.seeder.ts` (escape hatch for dynamic/relational seed data), both inside `src/modules/{name}/seeders/`.
+
 > **v3.1.0 additions**: package manager and dev/CLI runtime switched from **Yarn + Node/tsx** to **Bun**. `bun install` replaces `yarn install`; `bun run <script>` replaces `yarn <script>`; `dev`/`db:sync`/`db:seed` now run directly via Bun's native TypeScript/ESM support (the `tsx` devDependency was removed). `build` is unchanged (`tsc` → `dist/`), and `start` now executes the compiled output with `bun` instead of `node`. See `tutorial/25-migrasi-yarn-ke-bun.md`.
 
 > **v2.0.0 additions**: new scripts `db:sync` (assemble per-module schema from enabled modules → `prisma db push` → sync menu/permission catalog) and `db:seed` (default roles + admin user, from `SEED_ADMIN_*` env). CLI entry points live in `scripts/db-sync.ts` and `scripts/db-seed.ts`, outside `src/` so `tsc` build ignores them. `DB_DRIVER` now also accepts `sqlserver`. New file conventions: `{name}.manifest.ts` (module menu/permission manifest) and `db/{name}.prisma` (module schema fragment). See `tutorial/18`–`tutorial/21`.
@@ -78,7 +80,7 @@ This project uses **Bun**, not yarn/npm.
 | Run dev server | `bun run dev` |
 | Build | `bun run build` |
 | Start (prod) | `bun run start` |
-| Database commands | `bun run db:generate`, `bun run db:migrate`, `bun run db:push` |
+| Database commands | `bun run migrate` (+ `migrate:install`/`:status`/`:rollback`/`:reset`/`:refresh`/`:fresh`), `bun run db:generate`, `bun run db:sync`, `bun run db:seed` |
 | Lint | `bun run lint` |
 | Format | `bun run format` |
 | Security audit | `bun audit --audit-level=high` |
@@ -91,9 +93,16 @@ This project uses **Bun**, not yarn/npm.
     "dev": "bun --env-file=.env --watch src/server.ts",
     "start": "bun --env-file=.env dist/server.js",
     "build": "tsc",
+    "migrate": "bun --env-file=.env scripts/migrate.ts",
+    "migrate:install": "bun --env-file=.env scripts/migrate.ts install",
+    "migrate:status": "bun --env-file=.env scripts/migrate.ts status",
+    "migrate:rollback": "bun --env-file=.env scripts/migrate.ts rollback",
+    "migrate:reset": "bun --env-file=.env scripts/migrate.ts reset",
+    "migrate:refresh": "bun --env-file=.env scripts/migrate.ts refresh",
+    "migrate:fresh": "bun --env-file=.env scripts/migrate.ts fresh",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
+    "db:sync": "bun --env-file=.env scripts/db-sync.ts",
+    "db:seed": "bun --env-file=.env scripts/db-seed.ts",
     "lint": "eslint src/",
     "format": "prettier --write src/",
     "audit": "bun audit --audit-level=high"
@@ -133,6 +142,10 @@ All files use **dot-separated kebab-case** pattern: `{name}.{layer}.ts`
 | Middleware | `{name}-handler.ts` or `{name}.ts` | `error-handler.ts`, `request-id.ts` |
 | Utilities | `{name}.ts` | `slugify.ts`, `date.ts` |
 | Jobs | `{action}.job.ts` | `cleanup.job.ts`, `daily-report.job.ts` |
+| Seeders (static rows) | `{table}.json` | `roles.json`, `users.json` |
+| Seeders (escape hatch) | `{what}.seeder.ts` | `grants.seeder.ts`, `admin-role.seeder.ts` |
+| Manifest | `{name}.manifest.ts` | `role.manifest.ts` |
+| Schema fragment | `db/{name}.prisma` | `db/role.prisma` |
 
 ### Classes & Interfaces
 

@@ -95,7 +95,8 @@ DB_DRIVER=sqlite
 DATABASE_URL="file:./prisma/dev.db"
 ```
 ```bash
-bun run db:push   # buat tabel
+bun run migrate    # rakit schema modul aktif + buat & jalankan migrasi
+bun run db:seed    # role default + admin user
 bun run dev
 ```
 
@@ -105,9 +106,8 @@ DB_DRIVER=mysql
 DATABASE_URL="mysql://user:password@localhost:3306/FastNG"
 ```
 ```bash
-# Salin schema MySQL ke schema utama
-cp prisma/schema.mysql.prisma prisma/schema.prisma
-bun run db:migrate
+bun run migrate    # schema dirakit otomatis dari prisma/base/mysql.prisma + fragmen modul
+bun run db:seed
 bun run dev
 ```
 
@@ -117,8 +117,8 @@ DB_DRIVER=postgresql
 DATABASE_URL="postgresql://user:password@localhost:5432/FastNG"
 ```
 ```bash
-cp prisma/schema.postgresql.prisma prisma/schema.prisma
-bun run db:migrate
+bun run migrate    # schema dirakit otomatis dari prisma/base/postgresql.prisma + fragmen modul
+bun run db:seed
 bun run dev
 ```
 
@@ -358,9 +358,18 @@ src/
 └── server.ts                      # Entrypoint — start HTTP server
 
 prisma/
-├── schema.prisma                  # Schema aktif (default: SQLite)
-├── schema.mysql.prisma            # Referensi MySQL
-└── schema.postgresql.prisma       # Referensi PostgreSQL
+├── base/                          # Blok datasource+generator per driver
+│   ├── sqlite.prisma
+│   ├── mysql.prisma
+│   ├── postgresql.prisma
+│   └── sqlserver.prisma
+└── schema.prisma                  # AUTO-GENERATED dari base + fragmen modul aktif
+
+# Riwayat migrasi TIDAK di prisma/migrations — tiap modul punya foldernya sendiri:
+src/modules/{name}/db/
+├── {name}.prisma                  # fragmen schema modul ini
+└── migrations/
+    └── <timestamp>_<name>/        # migration.sql + down.sql + schema.snapshot.prisma
 ```
 
 ---
@@ -401,9 +410,9 @@ Edit `src/registry/module.registry.ts`:
 
 **3. Tambahkan model Prisma** (jika relational)
 
-Edit `prisma/schema.prisma`, lalu:
+Buat fragmen `src/modules/posts/db/posts.prisma` (hanya blok `model`), lalu:
 ```bash
-bun run db:migrate
+bun run migrate -- --name=add_posts
 ```
 
 Modul akan otomatis terdaftar saat server restart — tanpa mengubah `app.js`.
@@ -430,9 +439,16 @@ Modul akan otomatis terdaftar saat server restart — tanpa mengubah `app.js`.
 | `bun run dev` | `bun --env-file=.env --watch src/server.ts` | Development server (no build needed) |
 | `bun run build` | `tsc` | Compile TypeScript ke `dist/` |
 | `bun run start` | `bun --env-file=.env dist/server.js` | Production server (jalankan setelah build) |
+| `bun run migrate` | `scripts/migrate.ts` | Rakit schema modul aktif → buat & jalankan migrasi → sinkron katalog |
+| `bun run migrate:install` | `scripts/migrate.ts install` | Buat tabel repository migrasi (`_fastng_migrations`) |
+| `bun run migrate:status` | `scripts/migrate.ts status` | Status tiap migrasi (Ran/Pending + batch) |
+| `bun run migrate:rollback` | `scripts/migrate.ts rollback` | Batalkan batch terakhir (`-- --step=N`) |
+| `bun run migrate:reset` | `scripts/migrate.ts reset` | Batalkan semua migrasi |
+| `bun run migrate:refresh` | `scripts/migrate.ts refresh` | Reset lalu jalankan ulang semua (`-- --seed`) |
+| `bun run migrate:fresh` | `scripts/migrate.ts fresh` | Drop semua tabel lalu jalankan ulang semua (`-- --seed`) |
+| `bun run db:seed` | `scripts/db-seed.ts` | Jalankan seeder tiap modul aktif (`-- --module=` / `-- --class=`) |
+| `bun run db:sync` | `scripts/db-sync.ts` | Sinkron katalog menu/permission saja |
 | `bun run db:generate` | `prisma generate` | Generate Prisma Client |
-| `bun run db:migrate` | `prisma migrate dev` | Buat + jalankan migrasi |
-| `bun run db:push` | `prisma db push` | Push schema tanpa migrasi (dev) |
 | `bun run lint` | `eslint src/` | Lint kode TypeScript |
 | `bun run format` | `prettier --write src/` | Format kode |
 | `bun audit` | `bun audit --audit-level=high` | Cek keamanan dependency |

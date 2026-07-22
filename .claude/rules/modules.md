@@ -1,8 +1,10 @@
 # Modules: Structure, Registry, and Lifecycle
 
+> **v4.0.0 additions** (see `tutorial/26`): a module may also own `src/modules/{name}/seeders/` — `*.json` files (`{ table, uniqueBy, rows, order? }`, the default for static data) and/or `*.seeder.ts` escape hatches (`seeder: ModuleSeeder` = `{ name, order?, run(ctx) }`) for dynamic or relational seed data. `bun run db:seed` auto-discovers both kinds for enabled modules and runs them in registry topological order, so a module's seeders always run after those of the modules it `dependsOn`. Seeders must be idempotent; a `*.seeder.ts` must go through the module's repository factory. Schema changes now flow through `bun run migrate` instead of `db:sync`, and each module's migrations live under its own `db/migrations/` — never combined with another module's.
+
 > **v2.0.0 additions** (see `tutorial/18`, `tutorial/19`): a module may now also own —
-> - `src/modules/{name}/{name}.manifest.ts` — `manifest: ModuleManifest` declaring sidebar `menu` metadata (or `menu: false` for service/helper modules) and supported `permissions[]`. Synced to the DB catalog bidirectionally by `bun run db:sync` (enabled ⇒ upsert, disabled ⇒ delete).
-> - `src/modules/{name}/db/{name}.prisma` — the module's Prisma schema fragment (only `model` blocks; self-contained, no cross-module `@relation`). Assembled into `prisma/schema.prisma` (auto-generated) for enabled modules only. Disabling a module drops its tables on the next `bun run db:sync`.
+> - `src/modules/{name}/{name}.manifest.ts` — `manifest: ModuleManifest` declaring sidebar `menu` metadata (or `menu: false` for service/helper modules) and supported `permissions[]`. Synced to the DB catalog bidirectionally by `bun run migrate` — or `bun run db:sync` standalone (enabled ⇒ upsert, disabled ⇒ delete).
+> - `src/modules/{name}/db/{name}.prisma` — the module's Prisma schema fragment (only `model` blocks; self-contained, no cross-module `@relation`). Assembled into `prisma/schema.prisma` (auto-generated) for enabled modules only. Disabling a module drops its tables on the next `bun run migrate`.
 >
 > Dependency validation (`dependsOn` targets must be enabled) now runs both at boot and in the migration CLI via `src/registry/dependency-validator.ts`.
 
@@ -30,12 +32,23 @@ src/modules/{name}/
 │   └── {name}.controller.ts              ← HTTP request handling
 ├── routes/
 │   └── {name}.routes.ts                  ← Fastify route definitions
-└── jobs/ (optional)
-    ├── cleanup.job.ts                    ← toad-scheduler job (if needed)
-    └── report.job.ts
+├── jobs/ (optional)
+│   ├── cleanup.job.ts                    ← toad-scheduler job (if needed)
+│   └── report.job.ts
+├── seeders/ (optional)
+│   ├── {table}.json                      ← static rows for one table, run by `bun run db:seed`
+│   └── {what}.seeder.ts                  ← escape hatch: exports `seeder: ModuleSeeder`
+├── db/ (optional)
+│   ├── {name}.prisma                     ← module's schema fragment (model blocks only)
+│   └── migrations/                       ← this module's OWN migration history (`bun run migrate`)
+│       └── <timestamp>_<name>/
+│           ├── migration.sql
+│           ├── down.sql
+│           └── schema.snapshot.prisma
+└── {name}.manifest.ts (optional)         ← menu + permission manifest
 ```
 
-**Note**: The `jobs/` folder is optional and only created if the module needs scheduled tasks (see `.claude/rules/auth-and-jobs.md` for details).
+**Note**: `jobs/`, `seeders/`, `db/`, and `{name}.manifest.ts` are optional — create them only if the module needs scheduled tasks, seed data, its own tables, or a sidebar menu/permissions respectively (see `.claude/rules/auth-and-jobs.md`, `tutorial/26`, `tutorial/18`, `tutorial/19`).
 
 ## File Naming Conventions
 

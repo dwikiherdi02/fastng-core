@@ -11,9 +11,7 @@ export default async function welcomeRoutes(
   fastify: FastifyInstance,
   controller: WelcomeController
 ): Promise<void> {
-  fastify.get(
-    '/',
-    { schema: greetSchema, preHandler: [fastify.authenticate] },
-    (req, rep) => controller.greet(req, rep)
+  fastify.get('/', { schema: greetSchema, preHandler: [fastify.authenticate] }, (req, rep) =>
+    controller.greet(req, rep)
   )
 }

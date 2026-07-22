@@ -43,9 +43,7 @@ Replace `user`, `password`, `localhost`, `3306`, and `fastng_db` with your actua
 **Step 3:** Generate Prisma client and apply schema:
 
 ```bash
-bun run db:generate
-bun run db:migrate
-# or bun run db:push for dev
+bun run migrate
 ```
 
 **Step 4:** Start the server:
@@ -80,9 +78,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/fastng_db
 **Step 3:** Generate and migrate:
 
 ```bash
-bun run db:generate
-bun run db:migrate
-# or bun run db:push
+bun run migrate
 ```
 
 **Step 4:** Start:
@@ -129,16 +125,16 @@ bun run dev
 
 **Starting fresh after a switch:** All data from the previous driver is lost. This is fine for local development; for production, plan migrations carefully.
 
-## db:push vs db:migrate vs db:studio
+## Migration commands after a switch
 
-| Command | Use Case | Creates Migration File | Good For |
-|---|---|---|---|
-| `bun run db:push` | Local dev, prototyping | No | Rapid iteration (no history) |
-| `bun run db:migrate` | Production, CI/CD | Yes | Version control, rollback safety |
-| `bun run db:studio` | GUI-based DB admin | N/A | Manual schema edits, viewing data |
+| Command | Use Case |
+|---|---|
+| `bun run migrate` | Diff each enabled module's own fragment for the new driver, create + apply its migration, sync the catalog |
+| `bun run migrate:fresh -- --seed` | Rebuild the new database from scratch and seed it (the usual move after switching) |
+| `bun run migrate:status` | Check what has been applied per module, and in which batch |
+| `bunx prisma studio` | GUI-based DB admin (Prisma drivers only) |
 
-**Development**: Use `bun run db:push`.  
-**Production**: Always use `bun run db:migrate` to create timestamped migration files.
+Migration SQL is driver-specific and stored **per module** (`src/modules/{name}/db/migrations/`), so migrations created for one driver will not apply to another — `bun run migrate` detects the mismatch and tells you which module's `db/migrations/` folder to delete. After switching, delete every module's `db/migrations/` folder and run `bun run migrate` (or just `bun run migrate:fresh` on a driver you're not attached to keeping history for). See `tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md`.
 
 ## Verifying the Switch
 

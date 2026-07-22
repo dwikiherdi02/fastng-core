@@ -41,10 +41,10 @@ export class UserMongoRepository implements IUserRepository {
     return doc ? toEntity(doc) : null
   }
 
-  async findAll({
-    page = 1,
-    limit = 20,
-  }: { page?: number; limit?: number } = {}): Promise<{ items: UserEntity[]; total: number }> {
+  async findAll({ page = 1, limit = 20 }: { page?: number; limit?: number } = {}): Promise<{
+    items: UserEntity[]
+    total: number
+  }> {
     const skip = (page - 1) * limit
     const [docs, total] = await Promise.all([
       UserModel.find().skip(skip).limit(limit).sort({ created_at: -1 }).lean<LeanUserDoc[]>(),

@@ -5,7 +5,7 @@
 > **v2.0.0 updates** (see `tutorial/17`, `tutorial/20`):
 > - **Access-token payload** is now `{ sub, sid, jti, username, roles }` — `roles` is a **string array**; `request.user.role` (singular) no longer exists. Typed in `src/types/fastify.d.ts`.
 > - **Dynamic RBAC**: authorize by menu+permission, not by role string. Use `preHandler: [fastify.authenticate, fastify.authorize('menu_code', 'permission_code')]` (throws `ForbiddenError`→403). `fastify.requireRole('admin')` is a coarse role check. Decorators in `src/core/plugins/auth-guard.plugin.ts` (registered after `jwt.plugin` in `app.ts`), backed by `src/core/rbac/rbac.reader.ts`. Multi-role resolution is union (most-permissive).
-> - **Sessions**: refresh tokens are opaque, SHA-256-hashed, stored in `sessions`, rotated every refresh with reuse detection. Endpoints: `GET /me/menus`, `GET /me/sessions`, `DELETE /sessions/:id` (force-logout). Permissions/menus are declared per module in `{name}.manifest.ts` and synced via `bun run db:sync` + `bun run db:seed`.
+> - **Sessions**: refresh tokens are opaque, SHA-256-hashed, stored in `sessions`, rotated every refresh with reuse detection. Endpoints: `GET /me/menus`, `GET /me/sessions`, `DELETE /sessions/:id` (force-logout). Permissions/menus are declared per module in `{name}.manifest.ts` and synced via `bun run migrate` + `bun run db:seed` (per-module seeders — the default roles live in `src/modules/role/seeders/`, the admin user in `src/modules/auth/seeders/`; see `tutorial/26`).
 >
 > The RBAC sample in section 5 below (single `role` string, `requireAdmin`) is the pre-v2 pattern — prefer `fastify.authorize(...)` for new code.
 
@@ -228,7 +228,7 @@ model User {
 }
 ```
 
-Run: `bun run db:generate && bun run db:migrate`
+Run: `bun run migrate`
 
 **Step 2:** Add role-check decorators:
 

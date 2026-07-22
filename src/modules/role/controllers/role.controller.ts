@@ -22,7 +22,8 @@ export class RoleController {
 
   async create(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const parsed = createRoleSchema.safeParse(request.body)
-    if (!parsed.success) throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
+    if (!parsed.success)
+      throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
     const role = await this.service.create(parsed.data)
     reply.code(201).send(successResponse(toRoleResponse(role)))
   }
@@ -30,7 +31,8 @@ export class RoleController {
   async update(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const { id } = request.params as { id: string }
     const parsed = updateRoleSchema.safeParse(request.body)
-    if (!parsed.success) throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
+    if (!parsed.success)
+      throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
     const role = await this.service.update(id, parsed.data)
     reply.send(successResponse(toRoleResponse(role)))
   }
@@ -49,7 +51,8 @@ export class RoleController {
   async setGrants(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     const { id } = request.params as { id: string }
     const parsed = setRoleGrantsSchema.safeParse(request.body)
-    if (!parsed.success) throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
+    if (!parsed.success)
+      throw new ValidationError(parsed.error.issues.map((i) => i.message).join(', '))
     const grants = await this.service.setGrants(id, parsed.data.grants)
     reply.send(successResponse(grants))
   }

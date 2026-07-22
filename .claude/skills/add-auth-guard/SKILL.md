@@ -180,7 +180,7 @@ model User {
 }
 ```
 
-Run: `bun run db:generate && bun run db:migrate`
+Run: `bun run migrate`
 
 For MongoDB, update your Mongoose schema with an enum:
 

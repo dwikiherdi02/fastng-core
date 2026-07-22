@@ -1,0 +1,41 @@
+// Base block for DB_DRIVER=sqlite. Contains only generator + datasource.
+// Module table definitions are appended from each enabled module's db/*.prisma fragment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Schema fragment owned by the `role` module (roles + role-level grants).
+// `role_menu_permissions.menu_permission_id` is a scalar FK to the menu module (no @relation).
+
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  roleMenuPermissions RoleMenuPermission[]
+
+  @@map("roles")
+}
+
+model RoleMenuPermission {
+  id               String   @id @default(cuid())
+  roleId           String   @map("role_id")
+  menuPermissionId String   @map("menu_permission_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, menuPermissionId])
+  @@index([menuPermissionId])
+  @@map("role_menu_permissions")
+}

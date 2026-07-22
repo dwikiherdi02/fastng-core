@@ -1,4 +1,7 @@
-import type { IPermissionRepository, PermissionRecord } from '../repositories/permission.repository.js'
+import type {
+  IPermissionRepository,
+  PermissionRecord,
+} from '../repositories/permission.repository.js'
 
 export class PermissionService {
   constructor(private repository: IPermissionRepository) {}

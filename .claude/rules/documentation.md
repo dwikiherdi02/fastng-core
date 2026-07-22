@@ -96,7 +96,7 @@ Numbered steps with file paths, code examples, and exact commands. Each step sho
 
 Explanation + code sample + command:
 ```bash
-bun run db:push
+bun run migrate
 ```
 
 ### Langkah 2: Edit file Y

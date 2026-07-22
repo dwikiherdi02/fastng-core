@@ -1,0 +1,19 @@
+{
+  "table": "roles",
+  "uniqueBy": ["code"],
+  "order": 1,
+  "rows": [
+    {
+      "code": "admin",
+      "name": "Administrator",
+      "description": "Full access to all menus and permissions",
+      "is_active": true
+    },
+    {
+      "code": "user",
+      "name": "User",
+      "description": "Default role with basic access",
+      "is_active": true
+    }
+  ]
+}

@@ -21,23 +21,24 @@
 
 ### Step 1: Add Database Schema
 
-**For Prisma (sqlite/mysql/postgresql):**
+**For Prisma (sqlite/mysql/postgresql/sqlserver):**
 
-Edit `src/prisma/schema.prisma` and add your model. Also update `schema.mysql.prisma` and `schema.postgresql.prisma` if they're kept in sync:
+Create `src/modules/{name}/db/{name}.prisma` — only `model` blocks, no `datasource`/`generator`. Cross-module references are scalar FK columns, never `@relation` (fragments must be self-contained — see `.claude/rules/database.md`):
 
 ```prisma
 model Post {
   id        String   @id @default(cuid())
   title     String
   content   String
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  authorId  String   @map("author_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("posts")
 }
 ```
 
-Run: `bun run db:generate` (updates Prisma client), then `bun run db:push` (applies to dev DB).
+Run: `bun run migrate -- --name=add_{name}` (assembles the schema, diffs THIS module's own fragment against its own history — creating a migration under `src/modules/{name}/db/migrations/` — applies it, syncs the catalog). If the module ships seed data, add `src/modules/{name}/seeders/{table}.json` (default) or a `*.seeder.ts` escape hatch for dynamic/relational data, then run `bun run db:seed -- --module={name}` — see `tutorial/26`.
 
 **For MongoDB (if using Mongoose):**
 

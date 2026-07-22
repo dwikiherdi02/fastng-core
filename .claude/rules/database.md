@@ -1,11 +1,13 @@
 # Database: Drivers, Repository Pattern, and Transactions
 
+> **v4.0.0 updates** (see `tutorial/26`): `db push` is gone. Schema changes go through a Laravel-style migration CLI — `bun run migrate` (+ `migrate:install` / `:status` / `:rollback` / `:reset` / `:refresh` / `:fresh`) — where **each module owns its own migration history**: `src/modules/{name}/db/migrations/<ts>_<name>/{migration.sql, down.sql, schema.snapshot.prisma}`, diffed from that module's own fragment (base block + one module's `db/{name}.prisma`) against its own previous snapshot — never a combined cross-module diff. Migrations are applied with `prisma db execute`; batch tracking lives in `_fastng_migrations` (module + migration + batch columns), **not** `_prisma_migrations`. Disabling a module rolls its migrations back automatically (`down.sql`, not a new DROP migration). `bun run db:sync` now only reconciles the menu/permission catalog, and `bun run db:seed` runs each enabled module's `seeders/` (`*.json` table data, or a `*.seeder.ts` escape hatch) in topological order.
+
 > **v3.0.0 updates** (see `tutorial/22`): DB naming is **snake_case** — Prisma models keep PascalCase but map via `@@map`/`@map` (client access unchanged); Mongoose collections + fields are snake_case. RBAC tables are split into per-module fragments: `permission` (`permissions`), `menu` (`menus`, `menu_permissions`), `role` (`roles`, `role_menu_permissions`), `session` (`sessions`), `auth` (`users`, `user_roles`, `user_menu_permissions`). Cross-module FKs are **scalar columns (no `@relation`)** — reader/repos do step-wise joins, and cross-module cascades run in the service layer via `withTransaction`.
 
 > **v2.0.0 updates** (see `tutorial/18`, `tutorial/21`):
 > - **Fifth driver**: `sqlserver` (SQL Server 2017+) joins `sqlite`/`mysql`/`postgresql`/`mongodb`. `DB_DRIVER` enum in `env.config.ts` includes it; base block at `prisma/base/sqlserver.prisma`.
 > - **Per-module schema**: each module owns `src/modules/{name}/db/{name}.prisma` (only `model` blocks). `src/core/database/schema-builder.ts` assembles `prisma/schema.prisma` from `prisma/base/{driver}.prisma` + enabled modules' fragments. **`prisma/schema.prisma` is auto-generated — do not edit by hand.** Fragments must be self-contained (no cross-module `@relation`; use scalar FK columns). The old `schema.mysql.prisma`/`schema.postgresql.prisma` copies are gone.
-> - **Migration workflow**: `bun run db:sync` (validate deps → assemble → `prisma db push --accept-data-loss` → sync menu/permission catalog) and `bun run db:seed` (default roles + admin user). Disabling a module drops its tables and removes its catalog rows (bidirectional). For mongodb, `db:sync` runs catalog sync only.
+> - **Migration workflow** (superseded by v4.0.0 above): validate deps → assemble → apply → sync menu/permission catalog. Disabling a module drops its tables and removes its catalog rows (bidirectional). For mongodb, only catalog sync runs.
 > - **Auth schema**: `RefreshToken` replaced by `sessions` (SHA-256-hashed opaque tokens); added RBAC tables (`roles`, `user_roles`, `menus`, `permissions`, `menu_permissions`, `role_menu_permissions`). Catalog sync lives in `src/core/database/sync/`; RBAC reads in `src/core/rbac/rbac.reader.ts`.
 
 ## Dual-Driver Model
@@ -25,7 +27,7 @@ All three use Prisma with a single schema file at `src/prisma/schema.prisma`. Re
 - `src/prisma/schema.mysql.prisma`
 - `src/prisma/schema.postgresql.prisma`
 
-To switch between them, copy the target variant over `schema.prisma`, then run `bun run db:generate` and `bun run db:push` (or `bun run db:migrate`).
+To switch drivers, set `DB_DRIVER` in `.env` and run `bun run migrate` — the schema is reassembled from `prisma/base/{driver}.prisma` plus each enabled module's fragment.
 
 ### MongoDB
 
@@ -223,15 +225,32 @@ For MongoDB multi-document atomicity, rely on either:
 - Accepting eventual consistency (sequential operations without atomicity)
 - Migrating to Prisma with a SQL database
 
-## Command Comparison: `db:push` vs `db:migrate`
+## Migration Commands (Laravel-style, per-module history)
 
-| Command | Use Case | Creates Migration File | Rollback Support |
-|---|---|---|---|
-| `bun run db:push` | Local development, prototyping | No | No |
-| `bun run db:migrate` | Production deployments | Yes | Yes |
+| Command | What it does |
+|---|---|
+| `bun run migrate` | Assemble schema → for each enabled module with a fragment: apply its pending migrations, diff its own snapshot against its fragment, write+apply a new migration if changed → roll back any newly-disabled module's migrations → sync catalog. `-- --name=add_posts` names the migration(s) created this run. |
+| `bun run migrate:install` | Create the `_fastng_migrations` repository. On a populated database with no history it *baselines* each module (records its migrations without executing them). |
+| `bun run migrate:status` | Per-module, per-migration `Ran`/`Pending`/`Disabled` plus batch number. |
+| `bun run migrate:rollback` | Undo the last batch via `down.sql`, across whichever modules it touched. `-- --step=N` for N batches. |
+| `bun run migrate:reset` | Undo every batch, every module, in reverse dependency order. |
+| `bun run migrate:refresh` | Reset then re-apply everything (`-- --seed` to seed after). |
+| `bun run migrate:fresh` | Drop all tables then re-apply everything (`-- --seed` to seed after). |
 
-**Development**: `bun run db:push` is faster and simpler.  
-**Production**: Always use `bun run db:migrate` to create migration files for version control and rollback safety.
+**Rules:**
+- Never call `prisma migrate dev`, `prisma migrate deploy`, or `prisma db push` directly — they maintain a different history (`_prisma_migrations`) than this CLI.
+- Migrations live in `src/modules/{name}/db/migrations/` — **one history per module**, never combined. Commit them to git. `prisma/schema.prisma` stays auto-generated (still assembled from all enabled fragments — used for `prisma generate` and as the `prisma db execute` connection target, not as the diff source).
+- After `migrate:rollback`, a module's fragment still describes the newest state; the rolled-back migration shows as `Pending` until the next `bun run migrate`.
+- Disabling a module (`enabled: false`) doesn't generate a new DROP migration — the next `bun run migrate` rolls back that module's existing migrations automatically. Re-enabling replays them.
+- MongoDB: every `migrate:*` command is a no-op beyond catalog sync (collections are created lazily).
+
+## Seeding
+
+Seed data lives with the module that owns it, in `src/modules/{name}/seeders/`:
+- **`*.json`** (default, use this for static rows) — `{ table, uniqueBy, rows, order? }`. Values may be `{ "$env": "VAR" }` or `{ "$hash": <value> }` (bcrypt). Executed via DMMF-driven column mapping (Prisma) or the raw Mongoose collection (Mongo) — see `src/core/database/seeder/{json-seeder,table-writer}.ts`. Only works for tables with a single `@id` field.
+- **`*.seeder.ts`** (escape hatch) — exports `seeder: ModuleSeeder`, for data that's dynamic (derived from live state) or relational on a composite-key table (e.g. a join table).
+
+`bun run db:seed` discovers both kinds for enabled modules and runs them in registry topological order (`--module=` / `--class=` to narrow — `--class` matches a JSON file's basename or a `*.seeder.ts`'s exported `name`). Seeders must be idempotent; a `*.seeder.ts` must use the module's repository factory, never raw ORM calls, and never seed domain data from `core/`. See `tutorial/26`.
 
 ## Environment Variables
 

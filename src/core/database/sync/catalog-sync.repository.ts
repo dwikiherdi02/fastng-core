@@ -21,33 +21,19 @@ export interface MenuInput {
   permissions: PermissionInput[]
 }
 
-export interface MenuWithPermissions {
-  code: string
-  permissions: string[]
-}
-
-export interface RoleGrant {
-  menuCode: string
-  permissions: string[]
-}
-
 /**
- * Driver-agnostic operations for syncing the RBAC catalog. Prisma and Mongoose
- * implementations conform to this interface; the factory picks one based on
- * DB_DRIVER. Cross-module links are scalar FKs, so the Prisma impl resolves ids
- * with step-wise queries rather than relation `include`s.
+ * Driver-agnostic operations for syncing the RBAC catalog *declared by module
+ * manifests* — menus and permissions only. Seeding actual domain data (roles,
+ * users, grants) belongs to the owning module's seeder, not to core.
+ *
+ * Prisma and Mongoose implementations conform to this interface; the factory
+ * picks one based on DB_DRIVER. Cross-module links are scalar FKs, so the Prisma
+ * impl resolves ids with step-wise queries rather than relation `include`s.
  */
 export interface ICatalogSyncRepository {
   upsertPermission(code: string, name: string, description: string | null): Promise<void>
   upsertMenu(menu: MenuInput): Promise<void>
   removeMenu(code: string): Promise<void>
-  listMenusWithPermissions(): Promise<MenuWithPermissions[]>
-  upsertRole(code: string, name: string, description?: string): Promise<void>
-  setRoleGrants(roleCode: string, grants: RoleGrant[]): Promise<void>
-  upsertUserWithRoles(
-    data: { username: string; email: string; passwordHash: string },
-    roleCodes: string[]
-  ): Promise<void>
 }
 
 export function createCatalogSyncRepository(db: PrismaClient | null): ICatalogSyncRepository {

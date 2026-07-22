@@ -1,7 +1,7 @@
 ﻿# FastNG Changelog
 
-**Current Version**: 3.1.0
-**Last Updated**: 2026-07-19
+**Current Version**: 4.0.0
+**Last Updated**: 2026-07-22
 
 For semantic versioning rules, guidelines, and commit format, see @.claude/rules/versioning.md.
 
@@ -25,6 +25,33 @@ Changes listed here are uncommitted. Once committed, they will be moved to a ver
 
 ### Security
 - (none yet)
+
+---
+
+## [4.0.0] — 2026-07-22
+
+**Laravel-style migration CLI with per-module history + JSON-based seeders**
+
+### Added
+- **Migration CLI with per-module history, batches, and rollback** (tutorial: tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md): `bun run migrate`, `migrate:install`, `migrate:status`, `migrate:rollback` (`-- --step=N`), `migrate:reset`, `migrate:refresh`, `migrate:fresh` (the last two accept `-- --seed`). **Each module owns its own migration folder** at `src/modules/{name}/db/migrations/<ts>_<name>/{migration.sql, down.sql, schema.snapshot.prisma}` — diffed from that module's own fragment (driver base block + its `db/{name}.prisma`) against its own previous snapshot, never a cross-module combined diff. Up/down scripts come from `prisma migrate diff` between datamodels, so no shadow database is needed.
+- Migration repository table `_fastng_migrations` (`module`, `migration`, `batch`, `applied_at`, unique on `(module, migration)`), created by `migrate:install`, which also **baselines** an existing `db push` database per module (records its migrations without executing them).
+- **Rollback-on-disable**: when a module is switched to `enabled: false`, the next `bun run migrate` automatically rolls back that module's applied migrations (`down.sql`) instead of generating a new DROP migration. Re-enabling replays them. `migrate:status` marks such migrations `Disabled`.
+- **JSON-based seeders** (tutorial: tutorial/26): `src/modules/{name}/seeders/*.json` — `{ table, uniqueBy, rows, order? }`, with `{ "$env": "VAR" }` and `{ "$hash": <value> }` (bcrypt) directives for row values. Executed via `src/core/database/seeder/{json-seeder.ts,table-writer.ts}` — column mapping through Prisma's DMMF for SQL drivers, direct Mongoose collection writes for MongoDB. Scoped to tables with a single `@id` field.
+- **`*.seeder.ts` escape hatch** (unchanged contract): `ModuleSeeder` (`{ name, order?, run(ctx) }`) for seed data that's dynamic (derived from live state) or relational on a composite-key table. A `seeders/` folder may mix `.json` and `.seeder.ts` files; both are auto-discovered for enabled modules and run in registry topological order. `bun run db:seed` gains `-- --module=` and `-- --class=` selectors (matching a JSON file's basename or a `*.seeder.ts`'s exported `name`).
+- `src/registry/seeder.ts` (combined JSON+TS loader), `src/registry/topology.ts` (topological sort shared by the module loader, seeder loader, and migration runner), `src/core/utils/project-root.ts` (`findProjectRoot()` shared across all three).
+
+### Changed
+- **BREAKING** — schema changes no longer go through `prisma db push`, and migrations are no longer a single combined history. `bun run migrate` diffs and applies each enabled module independently via `prisma db execute`. `_fastng_migrations` — not `_prisma_migrations` — is the source of truth.
+- **BREAKING** — seeding moved out of `core/` and off hand-written repository-upsert code: default roles now live in `src/modules/role/seeders/roles.json` (+ `grants.seeder.ts` for the catalog-derived grants), and the admin user in `src/modules/auth/seeders/users.json` (+ `admin-role.seeder.ts` for the role assignment).
+- **BREAKING** — `ICatalogSyncRepository` is reduced to manifest catalog operations (`upsertPermission`, `upsertMenu`, `removeMenu`); `upsertRole`, `setRoleGrants`, `upsertUserWithRoles`, and `listMenusWithPermissions` were removed along with the `MenuWithPermissions` and `RoleGrant` types.
+- `bun run db:sync` no longer touches the schema — it only reconciles the menu/permission catalog (and still runs automatically at the end of `migrate`, `migrate:refresh`, and `migrate:fresh`).
+- `prisma generate` runs before the Prisma client is imported, avoiding a Windows `EPERM` failure when replacing a loaded query-engine DLL.
+- Migration folders are committed to git as each module's migration history (`src/modules/{name}/db/migrations/`) — there is no longer a top-level `prisma/migrations/`.
+- Documentation refreshed for the new architecture: README, tutorial/01, tutorial/05, tutorial/08, tutorial/18, tutorial/26, and the `add-module` / `add-auth-guard` / `switch-db-driver` skills.
+
+### Removed
+- **BREAKING** — npm scripts `db:push` and `db:migrate`. Use `bun run migrate` (and `migrate:fresh` to rebuild). Calling `prisma migrate dev` / `prisma db push` directly is no longer supported: they maintain a different history.
+- `IAuthRepository.updatePassword()` — the admin seeder now overwrites the password hash through the generic JSON table-writer's upsert path instead.
 
 ---
 

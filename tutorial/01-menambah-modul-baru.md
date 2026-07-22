@@ -66,7 +66,7 @@ model User {
 Jalankan migrasi:
 
 ```bash
-npm run db:migrate
+bun run migrate
 ```
 
 ---

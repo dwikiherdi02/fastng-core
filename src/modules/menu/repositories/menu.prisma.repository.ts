@@ -25,9 +25,7 @@ export class MenuPrismaRepository implements IMenuRepository {
       name: m.name,
       icon: m.icon,
       path: m.path,
-      parentCode: m.parentId
-        ? (menus.find((x) => x.id === m.parentId)?.code ?? null)
-        : null,
+      parentCode: m.parentId ? (menus.find((x) => x.id === m.parentId)?.code ?? null) : null,
       orderIndex: m.orderIndex,
       permissions: permsByMenuId.get(m.id) ?? [],
     }))
