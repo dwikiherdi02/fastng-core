@@ -1,6 +1,6 @@
-import env from '../../../core/config/env.config.js'
-import type { ModuleSeeder, SeederContext } from '../../../registry/seeder.js'
-import { createAuthRepository } from '../repositories/auth.repository.js'
+import env from '../../../../core/config/env.config.js'
+import type { ModuleSeeder, SeederContext } from '../../../../registry/seeder.js'
+import { createAuthRepository } from '../../repositories/auth.repository.js'
 
 /**
  * Assigns the `admin` role to the default admin user. Runs after `users.json`

@@ -46,7 +46,7 @@ async function resolveRow(row: SeedRow): Promise<SeedRow> {
   return resolved
 }
 
-/** Shape of a `src/modules/{name}/seeders/*.json` file. */
+/** Shape of a `src/modules/{name}/db/seeders/*.json` file. */
 export interface SeedTableFile {
   table: string
   uniqueBy: string[]

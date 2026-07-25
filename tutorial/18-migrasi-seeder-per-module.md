@@ -1,6 +1,6 @@
 # 18 — Migrasi & Seeder Per-Module
 
-> **Update v4.0.0**: `bun run db:push` dan `prisma db push` **sudah tidak dipakai**. Perakitan schema kini dijalankan oleh `bun run migrate` (CLI migrasi bergaya Laravel dengan riwayat, batch, dan rollback), dan `bun run db:sync` hanya menyinkronkan katalog menu/permission. Seeder juga tidak lagi tinggal di `core/` — tiap modul memiliki `seeders/` sendiri. **Baca `tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md`** untuk alur terbaru; halaman ini tetap berlaku untuk konsep *fragmen schema per modul* dan efek enable/disable.
+> **Update v4.0.0**: `bun run db:push` dan `prisma db push` **sudah tidak dipakai**. Perakitan schema kini dijalankan oleh `bun run migrate` (CLI migrasi bergaya Laravel dengan riwayat, batch, dan rollback), dan `bun run db:sync` hanya menyinkronkan katalog menu/permission. Seeder juga tidak lagi tinggal di `core/` — tiap modul memiliki `db/seeders/` sendiri. **Baca `tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md`** untuk alur terbaru; halaman ini tetap berlaku untuk konsep *fragmen schema per modul* dan efek enable/disable.
 
 > **Update v3.0.0**: nama tabel & kolom kini **snake_case** (Prisma `@@map`/`@map`; koleksi & field Mongo snake_case) — akses Prisma client tetap camelCase. Fragmen `db/*.prisma` kini dimiliki per modul RBAC (`permission`/`menu`/`role`/`session`), bukan lagi menumpuk di `auth` (lihat `tutorial/22`).
 

@@ -1,30 +1,21 @@
 ﻿# FastNG Changelog
 
-**Current Version**: 4.0.0
-**Last Updated**: 2026-07-22
+**Current Version**: 4.1.0
+**Last Updated**: 2026-07-25
 
 For semantic versioning rules, guidelines, and commit format, see @.claude/rules/versioning.md.
 
 ---
 
-## Unreleased Changes
-
-Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
-
-### Added
-- (none yet)
+## [4.1.0] — 2026-07-25
 
 ### Changed
-- (none yet)
-
-### Fixed
-- (none yet)
+- **Module seeder location**: `src/modules/{name}/seeders/` moved into `src/modules/{name}/db/seeders/`, so a module's schema fragment, migration history, and seed data all live under one `db/` folder (see tutorial/26-cli-migrasi-dan-seeder-ala-laravel.md and tutorial/18-migrasi-seeder-per-module.md, both updated). `src/registry/seeder.ts` (`seedersDirFor`) updated accordingly.
+- **Migration note**: any module with existing seeders (`role`, `auth`) must move its `seeders/` folder to `db/seeders/`; `bun run db:seed` will not find seeders left at the old path.
+- **Versioning workflow**: `VERSION.md` no longer keeps an "Unreleased Changes" staging section. Every change is written straight into a numbered version entry; while that entry is still uncommitted, later changes are folded into it and its level is re-evaluated — the number holds if the new change is lower or equal, and is recomputed from the last committed version if the new change is higher (e.g. an uncommitted `4.2.0` plus a MAJOR change becomes `5.0.0`, never `6.0.0`). See @.claude/rules/versioning.md.
 
 ### Removed
-- (none yet)
-
-### Security
-- (none yet)
+- The "Unreleased Changes" section and its empty-category template.
 
 ---
 

@@ -38,7 +38,7 @@ model Post {
 }
 ```
 
-Run: `bun run migrate -- --name=add_{name}` (assembles the schema, diffs THIS module's own fragment against its own history — creating a migration under `src/modules/{name}/db/migrations/` — applies it, syncs the catalog). If the module ships seed data, add `src/modules/{name}/seeders/{table}.json` (default) or a `*.seeder.ts` escape hatch for dynamic/relational data, then run `bun run db:seed -- --module={name}` — see `tutorial/26`.
+Run: `bun run migrate -- --name=add_{name}` (assembles the schema, diffs THIS module's own fragment against its own history — creating a migration under `src/modules/{name}/db/migrations/` — applies it, syncs the catalog). If the module ships seed data, add `src/modules/{name}/db/seeders/{table}.json` (default) or a `*.seeder.ts` escape hatch for dynamic/relational data, then run `bun run db:seed -- --module={name}` — see `tutorial/26`.
 
 **For MongoDB (if using Mongoose):**
 

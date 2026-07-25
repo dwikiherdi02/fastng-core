@@ -14,35 +14,75 @@ MAJOR.MINOR.PATCH
 
 ## Version Bumping Workflow
 
-### Development Phase (Before Commit)
+**There is no "Unreleased Changes" section.** Every change goes straight into a real, numbered version entry in `VERSION.md`. The only question is whether that entry is a *new* one or an *existing uncommitted* one.
 
-- Changes accumulate in the "Unreleased Changes" section in `VERSION.md`
-- Version number stays the same
-- Changes are grouped by type: Added, Changed, Fixed, Deprecated, Removed, Security
+### Step 1 — Classify the change
 
-### At Commit Time (When Ready to Release)
+Judge by the **intent** of the change, not by its size:
 
-1. Determine version bump:
-   - **New architecture pattern** or **breaking change** → MAJOR
-   - **New feature/module/plugin/utility** → MINOR
-   - **Bug fix, docs, refactor** → PATCH
+- **New architecture pattern** or **breaking change** → MAJOR
+- **New feature/module/plugin/utility** → MINOR
+- **Bug fix, docs, refactor, dependency bump** → PATCH
 
-2. Move "Unreleased Changes" section to new versioned section in `VERSION.md`
+### Step 2 — Is the top version entry already committed to git?
 
-3. Create fresh "Unreleased Changes" section
+Check whether the newest entry in `VERSION.md` exists in the last commit:
 
-4. Update **Current Version** at the top of `VERSION.md`
+```bash
+git show HEAD:VERSION.md    # compare against the working copy
+# or simply:
+git status --short VERSION.md   # modified & top entry absent from HEAD ⇒ uncommitted entry
+```
 
-5. **Important**: Tutorial MUST accompany any **MAJOR or MINOR** change
+| Situation | What to do |
+|---|---|
+| Top entry **is** in `HEAD` (all released) | **Create a new version entry** — bump from the top entry by the level from Step 1 |
+| Top entry is **not yet committed** | **Append into that same entry** (see Step 3) |
+
+### Step 3 — Appending to an uncommitted entry (level comparison)
+
+When an uncommitted version entry already exists, new changes are folded into it — do **not** create a second entry. Then compare levels (`MAJOR > MINOR > PATCH`):
+
+- **New change is lower than or equal to the existing level** → version number stays as-is; just add the bullets under the right category.
+- **New change is higher than the existing level** → recompute the version number from the **last committed version** using the higher level, and rename the entry.
+
+Also refresh the entry's date to today whenever you touch it.
+
+#### Level-comparison examples
+
+Last committed version: `4.1.0`.
+
+| Uncommitted entry | New change | Result |
+|---|---|---|
+| `4.2.0` (MINOR) | PATCH | stays `4.2.0`, bullet added under **Fixed** |
+| `4.2.0` (MINOR) | MINOR | stays `4.2.0`, bullet added under **Added** |
+| `4.2.0` (MINOR) | MAJOR | renamed to `5.0.0` (recomputed from `4.1.0`) |
+| `4.1.1` (PATCH) | MINOR | renamed to `4.2.0` (recomputed from `4.1.0`) |
+| `5.0.0` (MAJOR) | MINOR or PATCH | stays `5.0.0` |
+
+**Never** recompute from the uncommitted number itself — always from the last committed version. `4.2.0` + a MAJOR change is `5.0.0`, not `6.0.0`.
+
+### Step 4 — Sync the header
+
+Update **Current Version** at the top of `VERSION.md` to match the top entry, and set **Last Updated** to today.
+
+**Important**: a tutorial MUST accompany any **MAJOR or MINOR** entry — including when a PATCH-level entry gets promoted to MINOR/MAJOR by a later change.
 
 ### Example Workflow
 
-If current version is `1.0.0` and you add a new module (MINOR):
+Current version `1.0.0`, all committed. You add a new module (MINOR):
 
 1. Code is complete with accompanying tutorial
-2. In `VERSION.md`, move unreleased items to new `## [1.1.0] — 2026-06-20`
-3. Set "Current Version" to `1.1.0`
-4. Create fresh "Unreleased Changes" section with empty categories
+2. Add `## [1.1.0] — 2026-06-20` at the top of `VERSION.md` with the change bullets
+3. Set **Current Version** to `1.1.0`
+
+Then, before committing, you also fix a bug (PATCH):
+
+4. `1.1.0` is still uncommitted and PATCH < MINOR → keep `1.1.0`, add the bullet under **Fixed**
+
+Then, still before committing, you break the module registry contract (MAJOR):
+
+5. MAJOR > MINOR → rename the entry to `2.0.0` (recomputed from the committed `1.0.0`), keep all existing bullets, add the breaking-change bullet, and set **Current Version** to `2.0.0`
 
 ---
 
@@ -101,7 +141,9 @@ Refactor: extract slugify helper from posts module
 
 ### 🔴 MUST
 
-- Update `VERSION.md` with **every commit** that changes code or documentation
+- Update `VERSION.md` with **every change** to code or documentation — write it directly into a numbered version entry, never into a staging/"unreleased" area
+- Fold new changes into the top entry while it is still uncommitted; only create a new entry once the top one is in `HEAD`
+- When folding in, re-evaluate the entry's level: keep the number if the new change is lower/equal, recompute it from the last committed version if the new change is higher
 - Group changes by type: Added, Changed, Fixed, Deprecated, Removed, Security
 - Use semantic versioning consistently (MAJOR.MINOR.PATCH)
 - Include tutorial link for every MAJOR/MINOR change: `tutorial/NN-{topic}.md`
@@ -163,34 +205,9 @@ Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>
 
 ## Changelog Format in VERSION.md
 
-### Unreleased Changes (Active Development)
+There is exactly one entry shape — a numbered version. An entry that isn't committed yet uses the same format as a released one; it simply may still be renamed or extended until it lands in `HEAD`.
 
-```markdown
-## Unreleased Changes
-
-Changes listed here are uncommitted. Once committed, they will be moved to a version entry below.
-
-### Added
-- Feature 1
-- Feature 2 (tutorial: tutorial/NN-*.md)
-
-### Changed
-- Enhancement 1
-
-### Fixed
-- Bug fix 1
-
-### Deprecated
-- Old pattern (use X instead, see tutorial/XX-*.md)
-
-### Removed
-- Old system Y
-
-### Security
-- Security fix (if applicable)
-```
-
-### Released Version Entry
+### Version Entry
 
 ```markdown
 ## [1.2.0] — 2026-07-15
@@ -235,11 +252,19 @@ Changes listed here are uncommitted. Once committed, they will be moved to a ver
 
 ### Q: Can I group multiple changes into one version bump?
 
-**A:** Yes. If you make multiple MINOR changes before committing, accumulate them all in "Unreleased Changes", then bump MINOR once. All go into the same version entry.
+**A:** Yes — that's the default. As long as the top entry is still uncommitted, every further change is folded into it. The number only moves if one of those changes is a *higher* level than what the entry currently reflects.
+
+### Q: Why no "Unreleased Changes" section?
+
+**A:** It was redundant bookkeeping: the entry had to be renamed and moved at commit time anyway. Writing the numbered entry immediately means `VERSION.md` always shows the real version the working tree represents, and git already tells you what is and isn't released.
+
+### Q: How do I know whether the top entry is committed?
+
+**A:** `git show HEAD:VERSION.md` and look for the entry heading. If it isn't there, the entry is uncommitted and you append into it. Amending a commit doesn't change this — once an entry is in `HEAD`, treat it as released.
 
 ### Q: What if I realize a MINOR change should have been MAJOR?
 
-**A:** If caught before commit, fix it and re-bump as MAJOR. If caught after commit, you can either revert+recommit as MAJOR (preferred), or add a note in the next version explaining the mismatch (acceptable but not ideal).
+**A:** If the entry is still uncommitted, just rename it — recompute from the last committed version (that's exactly the Step 3 rule). If it's already committed, either revert+recommit as MAJOR (preferred), or add a note in the next version explaining the mismatch (acceptable but not ideal).
 
 ### Q: Who writes the changelog entry?
 
@@ -278,6 +303,6 @@ See `@.claude/rules/documentation.md` for tutorial requirements and format.
 `VERSION.md` is the single source of truth for all version and changelog information. Read it to understand:
 - Current version number
 - What's been released and when
-- What changes are uncommitted (Unreleased Changes section)
+- What the pending change set is (the top entry, if it isn't in `HEAD` yet — compare with `git show HEAD:VERSION.md`)
 
 For this project's full version archive, see `VERSION.md` at the root of the repository.

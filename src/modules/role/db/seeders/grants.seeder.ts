@@ -1,6 +1,6 @@
-import type { ModuleSeeder, SeederContext } from '../../../registry/seeder.js'
-import { createMenuRepository } from '../../menu/index.js'
-import { createRoleRepository, type RoleGrant } from '../repositories/role.repository.js'
+import type { ModuleSeeder, SeederContext } from '../../../../registry/seeder.js'
+import { createMenuRepository } from '../../../menu/index.js'
+import { createRoleRepository, type RoleGrant } from '../../repositories/role.repository.js'
 
 /**
  * Grants for the default roles, derived from the live menu catalog:

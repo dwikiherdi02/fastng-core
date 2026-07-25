@@ -168,12 +168,12 @@ Bedanya `refresh` vs `fresh`: `refresh` memakai `down.sql` tiap modul, sedangkan
 ### Struktur
 
 ```
-src/modules/{name}/seeders/
+src/modules/{name}/db/seeders/
   {nama-bebas}.json         ← data statis: sebut tabel tujuan + baris datanya
   {nama-bebas}.seeder.ts    ← escape hatch untuk seed data dinamis/relasional
 ```
 
-Satu folder `seeders/` boleh berisi campuran keduanya — cocok untuk modul yang punya beberapa tabel (mis. modul `role` py punya tabel `roles` dan grant relasional `role_menu_permissions`).
+Folder `seeders/` ini bertetangga dengan `migrations/` di dalam `db/` — jadi semua artefak database milik modul (fragmen schema, riwayat migrasi, seed data) berkumpul di satu tempat: `src/modules/{name}/db/`. Satu folder `db/seeders/` boleh berisi campuran `.json` dan `.seeder.ts` — cocok untuk modul yang punya beberapa tabel (mis. modul `role` py punya tabel `roles` dan grant relasional `role_menu_permissions`).
 
 ### Format file JSON
 
@@ -250,13 +250,13 @@ export interface SeederContext {
 
 Contoh nyata di repo — modul `role` memisah data statis dari logika dinamis:
 
-- `src/modules/role/seeders/roles.json` — baris tabel `roles` (`admin`, `user`)
-- `src/modules/role/seeders/grants.seeder.ts` (`order: 2`) — assign grant per role dari katalog menu (dinamis, harus baca live data)
+- `src/modules/role/db/seeders/roles.json` — baris tabel `roles` (`admin`, `user`)
+- `src/modules/role/db/seeders/grants.seeder.ts` (`order: 2`) — assign grant per role dari katalog menu (dinamis, harus baca live data)
 
 Dan modul `auth`:
 
-- `src/modules/auth/seeders/users.json` — baris tabel `users`, pakai `$env`+`$hash` untuk admin default
-- `src/modules/auth/seeders/admin-role.seeder.ts` (`order: 2`) — assign role `admin` lewat `user_roles` (primary key gabungan, bukan tabel ber-`id` tunggal)
+- `src/modules/auth/db/seeders/users.json` — baris tabel `users`, pakai `$env`+`$hash` untuk admin default
+- `src/modules/auth/db/seeders/admin-role.seeder.ts` (`order: 2`) — assign role `admin` lewat `user_roles` (primary key gabungan, bukan tabel ber-`id` tunggal)
 
 ### Urutan eksekusi
 
@@ -279,7 +279,7 @@ bun run db:seed -- --class=GrantsSeeder  # nama seeder.ts
 
 Misal modul `posts` butuh kategori awal (tabel `categories`, kolom `id` tunggal — cocok untuk JSON).
 
-**1. Buat file `src/modules/posts/seeders/categories.json`:**
+**1. Buat file `src/modules/posts/db/seeders/categories.json`:**
 
 ```json
 {
@@ -299,7 +299,7 @@ Misal modul `posts` butuh kategori awal (tabel `categories`, kolom `id` tunggal 
 bun run db:seed -- --module=posts
 ```
 
-Tidak ada registrasi manual: file cukup ada di folder `seeders/` modul yang aktif.
+Tidak ada registrasi manual: file cukup ada di folder `db/seeders/` modul yang aktif.
 
 ## Aturan/Pedoman
 
@@ -345,7 +345,7 @@ Perintah ini mendeteksi database yang **sudah berisi tabel tetapi tanpa riwayat*
 - `src/registry/seeder.ts` — loader gabungan JSON + `ModuleSeeder`, `loadSeeders()`
 - `src/registry/topology.ts` — topological sort yang dipakai bersama module loader & seeder/migration loader
 - `scripts/db-seed.ts` — CLI seeder
-- `src/modules/role/seeders/{roles.json,grants.seeder.ts}`, `src/modules/auth/seeders/{users.json,admin-role.seeder.ts}` — contoh nyata
+- `src/modules/role/db/seeders/{roles.json,grants.seeder.ts}`, `src/modules/auth/db/seeders/{users.json,admin-role.seeder.ts}` — contoh nyata
 
 ## Catatan
 

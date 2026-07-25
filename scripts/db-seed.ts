@@ -1,5 +1,5 @@
 /**
- * Run the seeders every ENABLED module ships in `src/modules/{name}/seeders/`
+ * Run the seeders every ENABLED module ships in `src/modules/{name}/db/seeders/`
  * (`*.json` table data, or a `*.seeder.ts` escape hatch), in registry
  * topological order (a module's seeders run after those of the modules it
  * dependsOn). All seeders are idempotent, so this is re-runnable.

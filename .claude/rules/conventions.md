@@ -1,6 +1,6 @@
 # Conventions: Tooling, Naming, and Service Composition
 
-> **v4.0.0 additions** (see `tutorial/26`): scripts `db:push` and `db:migrate` are **removed**. Schema work goes through `migrate` / `migrate:install` / `migrate:status` / `migrate:rollback` / `migrate:reset` / `migrate:refresh` / `migrate:fresh` (CLI at `scripts/migrate.ts`, logic in `src/core/database/migration/`) — **each module keeps its own migration history** in `src/modules/{name}/db/migrations/`, diffed from that module's own fragment, never combined. `db:sync` now only reconciles the menu/permission catalog. `db:seed` runs each enabled module's `seeders/` (`--module=` / `--class=`). New file conventions: `{table}.json` (static seed rows, the default) and `{what}.seeder.ts` (escape hatch for dynamic/relational seed data), both inside `src/modules/{name}/seeders/`.
+> **v4.0.0 additions** (see `tutorial/26`): scripts `db:push` and `db:migrate` are **removed**. Schema work goes through `migrate` / `migrate:install` / `migrate:status` / `migrate:rollback` / `migrate:reset` / `migrate:refresh` / `migrate:fresh` (CLI at `scripts/migrate.ts`, logic in `src/core/database/migration/`) — **each module keeps its own migration history** in `src/modules/{name}/db/migrations/`, diffed from that module's own fragment, never combined. `db:sync` now only reconciles the menu/permission catalog. `db:seed` runs each enabled module's `db/seeders/` (`--module=` / `--class=`). New file conventions: `{table}.json` (static seed rows, the default) and `{what}.seeder.ts` (escape hatch for dynamic/relational seed data), both inside `src/modules/{name}/db/seeders/`.
 
 > **v3.1.0 additions**: package manager and dev/CLI runtime switched from **Yarn + Node/tsx** to **Bun**. `bun install` replaces `yarn install`; `bun run <script>` replaces `yarn <script>`; `dev`/`db:sync`/`db:seed` now run directly via Bun's native TypeScript/ESM support (the `tsx` devDependency was removed). `build` is unchanged (`tsc` → `dist/`), and `start` now executes the compiled output with `bun` instead of `node`. See `tutorial/25-migrasi-yarn-ke-bun.md`.
 
@@ -142,8 +142,8 @@ All files use **dot-separated kebab-case** pattern: `{name}.{layer}.ts`
 | Middleware | `{name}-handler.ts` or `{name}.ts` | `error-handler.ts`, `request-id.ts` |
 | Utilities | `{name}.ts` | `slugify.ts`, `date.ts` |
 | Jobs | `{action}.job.ts` | `cleanup.job.ts`, `daily-report.job.ts` |
-| Seeders (static rows) | `{table}.json` | `roles.json`, `users.json` |
-| Seeders (escape hatch) | `{what}.seeder.ts` | `grants.seeder.ts`, `admin-role.seeder.ts` |
+| Seeders (static rows) | `db/seeders/{table}.json` | `db/seeders/roles.json`, `db/seeders/users.json` |
+| Seeders (escape hatch) | `db/seeders/{what}.seeder.ts` | `db/seeders/grants.seeder.ts`, `db/seeders/admin-role.seeder.ts` |
 | Manifest | `{name}.manifest.ts` | `role.manifest.ts` |
 | Schema fragment | `db/{name}.prisma` | `db/role.prisma` |
 

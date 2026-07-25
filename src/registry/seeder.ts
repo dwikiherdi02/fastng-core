@@ -53,7 +53,7 @@ export interface SeederFilter {
 }
 
 function seedersDirFor(mod: ModuleConfig): string {
-  return path.join(findProjectRoot(), 'src', 'modules', mod.name, 'seeders')
+  return path.join(findProjectRoot(), 'src', 'modules', mod.name, 'db', 'seeders')
 }
 
 /** `*.json` (declarative table data) or `*.seeder.ts` (escape hatch), sorted by file name. */
@@ -88,7 +88,7 @@ async function loadTsSeeder(dir: string, file: string, mod: ModuleConfig): Promi
   }
   if (!imported.seeder) {
     throw new Error(
-      `Seeder file "${path.join('src', 'modules', mod.name, 'seeders', file)}" does not export \`seeder\`.`
+      `Seeder file "${path.join('src', 'modules', mod.name, 'db', 'seeders', file)}" does not export \`seeder\`.`
     )
   }
   return {
